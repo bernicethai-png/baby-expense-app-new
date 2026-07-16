@@ -902,6 +902,36 @@
                 alert('❌ 删除失败');
             }
         }
+
+        // 初始化 - 从URL参数读取用户
+        function initializeUser() {
+            const params = new URLSearchParams(window.location.search);
+            const userParam = params.get('user');
+
+            if (userParam) {
+                const userLower = userParam.toLowerCase();
+                if (userLower === 'edward' || userLower === 'bernice') {
+                    currentUser = userLower.charAt(0).toUpperCase() + userLower.slice(1);
+                    currentUserId = userLower === 'edward' ? 1 : 2;
+
+                    // 隐藏切换用户和退出按钮
+                    const switchBtn = document.querySelector('.user-bar button:nth-child(1)');
+                    const logoutBtn = document.querySelector('.logout-btn');
+                    if (switchBtn) switchBtn.style.display = 'none';
+                    if (logoutBtn) logoutBtn.style.display = 'none';
+                }
+            }
+
+            // 更新显示的用户名
+            document.getElementById('current-user').textContent = currentUser;
+
+            // 加载初始数据
+            loadHomeData();
+            updateCategories();
+        }
+
+        // 页面加载时初始化用户
+        window.addEventListener('load', initializeUser);
     </script>
 </body>
 </html>
