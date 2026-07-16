@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://expense.onrender.com/api';
+const API_BASE_URL = 'https://baby-expense-app-new-1.onrender.com/api';
 
 async function getUsers() {
     return fetch(API_BASE_URL + '/users').then(r => r.json());
