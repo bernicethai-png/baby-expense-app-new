@@ -903,6 +903,50 @@
             }
         }
 
+        // 密码验证
+        const CORRECT_PASSWORD = '4426';
+
+        function showPasswordPrompt() {
+            const userParam = new URLSearchParams(window.location.search).get('user');
+            if (!userParam) return;
+
+            const userLower = userParam.toLowerCase();
+            if (userLower !== 'edward' && userLower !== 'bernice') return;
+
+            // 检查sessionStorage是否已验证
+            const sessionKey = `auth_${userLower}`;
+            if (sessionStorage.getItem(sessionKey) === 'verified') {
+                return; // 已验证，继续进入
+            }
+
+            // 显示密码输入框
+            let attempts = 3;
+            let isCorrect = false;
+
+            while (attempts > 0 && !isCorrect) {
+                const password = prompt(`🔐 请输入密码 (${attempts}次尝试机会)：`, '');
+
+                if (password === null) {
+                    // 用户点击取消
+                    window.location.href = '/';
+                    return;
+                }
+
+                if (password === CORRECT_PASSWORD) {
+                    isCorrect = true;
+                    sessionStorage.setItem(sessionKey, 'verified');
+                } else {
+                    attempts--;
+                    if (attempts > 0) {
+                        alert(`❌ 密码错误！还有 ${attempts} 次尝试机会`);
+                    } else {
+                        alert('❌ 密码错误次数过多，页面将关闭');
+                        window.location.href = '/';
+                    }
+                }
+            }
+        }
+
         // 初始化 - 从URL参数读取用户
         function initializeUser() {
             const params = new URLSearchParams(window.location.search);
@@ -930,8 +974,11 @@
             updateCategories();
         }
 
-        // 页面加载时初始化用户
-        window.addEventListener('load', initializeUser);
+        // 页面加载时：先验证密码，再初始化用户
+        window.addEventListener('load', () => {
+            showPasswordPrompt();
+            initializeUser();
+        });
     </script>
 </body>
 </html>
