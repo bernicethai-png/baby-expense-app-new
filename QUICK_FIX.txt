@@ -1,0 +1,48 @@
+快速修复步骤 - 3步完成
+
+===================================================
+
+步骤1: 打开终端 Terminal
+- 在Mac上：按 Command + Space，输入 "Terminal"，按Enter
+- 在Windows上：右键开始菜单，选择 Windows PowerShell 或 Command Prompt
+
+===================================================
+
+步骤2: 复制并粘贴以下命令到终端（一次一行）：
+
+cd ~/Claude/Projects/baby-expense-app-new
+
+cp app_fixed.py app.py
+
+git add app.py
+
+git commit -m "Fix: Replace broken app.py with correct version"
+
+git push origin main
+
+===================================================
+
+步骤3: 等待并验证
+
+1. 等待3-5分钟
+2. Render会自动检测到GitHub上的更新
+3. 打开浏览器访问：https://baby-expense-app-new-1.onrender.com/
+4. 应该看到前端界面（记账应用），而不是错误
+
+===================================================
+
+如果有问题：
+
+Q: 我在哪里复制粘贴命令？
+A: 打开Terminal应用，把上面的命令复制到terminal窗口
+
+Q: 命令不工作？
+A: 检查你是否使用了正确的路径。可以先运行:
+   ls ~/Claude/Projects/baby-expense-app-new
+
+Q: 网页仍然显示错误？
+A: 等待更长时间（5-10分钟），然后刷新浏览器
+
+===================================================
+
+完成！你的应用应该现在可以正常工作了。

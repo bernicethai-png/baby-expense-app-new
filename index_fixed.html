@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 宝宝共享记账本</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        :root {
+            --primary: #1e40af;
+            --primary-light: #3b82f6;
+            --surface: #f8fafc;
+            --surface-card: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: var(--surface);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3c8a 100%);
+            color: white;
+            padding: 16px 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+
+        .user-bar {
+            background: var(--surface-card);
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .user-bar .current-user {
+            color: var(--text-secondary);
+        }
+
+        .user-bar .logout-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .user-bar .logout-btn:hover {
+            background: #1e3c8a;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 70px;
+            position: relative;
+        }
+
+        .screen {
+            display: none !important;
+            padding: 20px;
+            animation: fadeIn 0.3s ease-in;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            min-height: 100%;
+        }
+
+        .screen.active {
+            display: block !important;
+            position: relative;
+            top: auto;
+            left: auto;
+            right: auto;
+            min-height: auto;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .page-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .card {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .card-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            background: var(--surface-card);
+            color: var(--text-primary);
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1e3c8a;
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: var(--text-primary);
+        }
+
+        .quick-categories {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .category-btn {
+            padding: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface-card);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .category-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .bill-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .bill-item:last-child {
+            border-bottom: none;
+        }
+
+        .bill-left {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .bill-icon {
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .bill-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .bill-info p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .bill-amount {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .category-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .category-item-name {
+            font-weight: 600;
+        }
+
+        .category-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .delete-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            background: var(--surface-card);
+            border-top: 1px solid var(--border);
+            height: 70px;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.3s;
+            font-size: 11px;
+        }
+
+        .nav-item-emoji {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .nav-item-text {
+            font-size: 11px;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">💰 宝宝共享记账本</div>
+
+        <!-- 用户栏 -->
+        <div class="user-bar">
+            <span class="current-user">👤 当前用户: <strong id="current-user">Edward</strong></span>
+            <div>
+                <button class="btn-secondary" style="padding: 4px 12px; margin-right: 8px;" onclick="switchUser()">切换用户</button>
+                <button class="logout-btn" onclick="logout()">退出</button>
+            </div>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="content">
+            <!-- 屏幕 1: 首页 -->
+            <div class="screen active" id="screen-home">
+                <div class="page-title">📊 首页</div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                    <div class="card" style="margin-bottom: 0;">
+                        <div class="card-label">本月支出</div>
+                        <div class="card-value">RM2,560</div>
+                        <div class="card-info">
+                            <span>预算: RM5,000</span>
+                            <span>剩余: RM2,440</span>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-bottom: 0;">
+                        <div class="card-label">本月收入</div>
+                        <div class="card-value" style="color: var(--success);">RM3,000</div>
+                        <div class="card-info">
+                            <span>结余: RM440</span>
+                            <span>结余率: 14.7%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px; margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div style="font-weight: 600; color: var(--text-primary);">📊 每周净开销（开销-收入）</div>
+                        <button onclick="toggleWeeklyDetails()" style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                            <span id="toggleText">展开</span>
+                        </button>
+                    </div>
+                    <div class="card">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div style="padding: 12px; background: var(--surface); border-radius: 8px;">
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">第 1 周</div>
+                                <div style="font-size: 18px; font-weight: 600; color: #ef4444;">-RM170</div>
+                                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">结余</div>
+                            </div>
+                            <div style="padding: 12px; background: var(--surface); border-radius: 8px;">
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">第 2 周</div>
+                                <div style="font-size: 18px; font-weight: 600; color: #ef4444;">-RM130</div>
+                                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">结余</div>
+                            </div>
+                            <div style="padding: 12px; background: var(--surface); border-radius: 8px;">
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">第 3 周</div>
+                                <div style="font-size: 18px; font-weight: 600; color: #ef4444;">-RM200</div>
+                                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">结余</div>
+                            </div>
+                            <div style="padding: 12px; background: var(--surface); border-radius: 8px;">
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">第 4 周</div>
+                                <div style="font-size: 18px; font-weight: 600; color: var(--success);">RM60</div>
+                                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">开销</div>
+                            </div>
+                        </div>
+                        <div style="border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; display: flex; justify-content: space-between;">
+                            <span style="font-weight: 600;">本月净开销</span>
+                            <span style="font-weight: 600; color: var(--success);">-RM440</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="weeklyDetailsCard" style="display: none; margin-bottom: 16px;">
+                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 12px;">📊 本月每周开销</div>
+                    <div class="card">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div style="padding: 12px; background: var(--surface); border-radius: 8px;">
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">第 1 周</div>
+                                <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">RM580</div>
+                                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">7月1日-7月7日</div>
+                            </div>
+                            <div style="padding: 12px; background: var(--surface); border-radius: 8px;">
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">第 2 周</div>
+                                <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">RM620</div>
+                                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">7月8日-7月14日</div>
+                            </div>
+                            <div style="padding: 12px; background: var(--surface); border-radius: 8px;">
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">第 3 周</div>
+                                <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">RM550</div>
+                                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">7月15日-7月21日</div>
+                            </div>
+                            <div style="padding: 12px; background: var(--surface); border-radius: 8px;">
+                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 600;">第 4 周</div>
+                                <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">RM810</div>
+                                <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">7月22日-7月31日</div>
+                            </div>
+                        </div>
+                        <div style="border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; display: flex; justify-content: space-between;">
+                            <span style="font-weight: 600;">本月合计</span>
+                            <span style="font-weight: 600; color: var(--primary);">RM2,560</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 16px; font-weight: 600; color: var(--text-primary);">👥 家庭成员</div>
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                        <span>Edward 的支出</span>
+                        <span style="font-weight: 600;">RM1,280</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Bernice 的支出</span>
+                        <span style="font-weight: 600;">RM1,280</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 屏幕 2: 记账 -->
+            <div class="screen" id="screen-add">
+                <div class="page-title">➕ 添加记账</div>
+
+                <div class="form-group">
+                    <label>类型</label>
+                    <select id="type" onchange="updateCategories()">
+                        <option value="expense">支出</option>
+                        <option value="income">收入</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>分类</label>
+                    <select id="category">
+                        <option value="meal">🍽️ 伙食</option>
+                        <option value="misc">🛒 杂费</option>
+                        <option value="lottery">🎫 马票</option>
+                        <option value="gambling">🎰 赌博</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>金额 (RM)</label>
+                    <input type="number" id="amount" placeholder="输入金额" step="0.01">
+                </div>
+
+                <div class="form-group">
+                    <label>日期</label>
+                    <input type="date" id="date" value="">
+                </div>
+
+                <div class="form-group">
+                    <label>备注 (可选)</label>
+                    <textarea id="note" placeholder="记录更多详情..."></textarea>
+                </div>
+
+                <div style="margin: 16px 0; font-weight: 600; color: var(--text-primary);">快速选择</div>
+                <div class="quick-categories">
+                    <button class="category-btn active" onclick="quickSelect('meal')">🍽️ 伙食</button>
+                    <button class="category-btn" onclick="quickSelect('misc')">🛒 杂费</button>
+                    <button class="category-btn" onclick="quickSelect('lottery')">🎫 马票</button>
+                    <button class="category-btn" onclick="quickSelect('gambling')">🎰 赌博</button>
+                    <button class="category-btn" onclick="quickSelect('income')">💰 收入</button>
+                </div>
+
+                <button class="btn btn-primary" onclick="saveRecord()">保存</button>
+            </div>
+
+            <!-- 屏幕 3: 账单 -->
+            <div class="screen" id="screen-bills">
+                <div class="page-title">📝 账单流水</div>
+
+                <div style="margin-bottom: 16px; font-size: 13px; color: var(--text-secondary); font-weight: 600;">7月14日 周二</div>
+
+                <div class="bill-item">
+                    <div class="bill-left">
+                        <div class="bill-icon">🍽️</div>
+                        <div class="bill-info">
+                            <h4>伙食 - 早餐</h4>
+                            <p>08:30 • Edward</p>
+                        </div>
+                    </div>
+                    <div class="bill-amount">-RM30</div>
+                </div>
+
+                <div class="bill-item">
+                    <div class="bill-left">
+                        <div class="bill-icon">🛒</div>
+                        <div class="bill-info">
+                            <h4>杂费 - 日用品</h4>
+                            <p>10:20 • Bernice</p>
+                        </div>
+                    </div>
+                    <div class="bill-amount">-RM25</div>
+                </div>
+
+                <div class="bill-item">
+                    <div class="bill-left">
+                        <div class="bill-icon">💰</div>
+                        <div class="bill-info">
+                            <h4>收入 - 工资</h4>
+                            <p>14:20 • Edward</p>
+                        </div>
+                    </div>
+                    <div class="bill-amount" style="color: var(--success);">+RM2,500</div>
+                </div>
+
+                <div style="margin-top: 20px; margin-bottom: 16px; font-size: 13px; color: var(--text-secondary); font-weight: 600;">7月13日 周一</div>
+
+                <div class="bill-item">
+                    <div class="bill-left">
+                        <div class="bill-icon">🍽️</div>
+                        <div class="bill-info">
+                            <h4>伙食 - 晚餐</h4>
+                            <p>19:00 • Bernice</p>
+                        </div>
+                    </div>
+                    <div class="bill-amount">-RM60</div>
+                </div>
+
+                <div class="bill-item">
+                    <div class="bill-left">
+                        <div class="bill-icon">🛒</div>
+                        <div class="bill-info">
+                            <h4>杂费 - 水电费</h4>
+                            <p>15:30 • Edward</p>
+                        </div>
+                    </div>
+                    <div class="bill-amount">-RM85</div>
+                </div>
+
+                <div class="bill-item">
+                    <div class="bill-left">
+                        <div class="bill-icon">💰</div>
+                        <div class="bill-info">
+                            <h4>收入 - 兼职</h4>
+                            <p>20:15 • Bernice</p>
+                        </div>
+                    </div>
+                    <div class="bill-amount" style="color: var(--success);">+RM500</div>
+                </div>
+            </div>
+
+            <!-- 屏幕 4: 统计 -->
+            <div class="screen" id="screen-stats">
+                <div class="page-title">📊 统计分析</div>
+
+                <div class="form-group">
+                    <label>时间范围</label>
+                    <select>
+                        <option>本月</option>
+                        <option>本年</option>
+                        <option>自定义</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 16px; font-weight: 600; color: var(--text-primary);">📊 支出分类统计</div>
+
+                <div class="card">
+                    <div style="margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <span>🍽️ 伙食</span>
+                            <span style="font-weight: 600;">RM1,650</span>
+                        </div>
+                        <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+                            <div style="width: 65%; height: 100%; background: var(--primary);"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <span>🛒 杂费</span>
+                            <span style="font-weight: 600;">RM910</span>
+                        </div>
+                        <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+                            <div style="width: 35%; height: 100%; background: var(--primary);"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin: 20px 0 16px 0; font-weight: 600; color: var(--text-primary);">💰 收入统计</div>
+
+                <div class="card">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <span>💰 收入</span>
+                            <span style="font-weight: 600; color: var(--success);">RM3,000</span>
+                        </div>
+                        <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+                            <div style="width: 100%; height: 100%; background: var(--success);"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin: 20px 0 16px 0; font-weight: 600; color: var(--text-primary);">📈 本月汇总</div>
+
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                        <span>总收入</span>
+                        <span style="font-weight: 600; color: var(--success);">RM3,000</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                        <span>总支出</span>
+                        <span style="font-weight: 600; color: #ef4444;">RM2,560</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border);">
+                        <span style="font-weight: 600;">结余</span>
+                        <span style="font-weight: 600; color: var(--success);">RM440</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 屏幕 5: 分类 -->
+            <div class="screen" id="screen-category">
+                <div class="page-title">🏷️ 分类管理</div>
+
+                <div style="margin-bottom: 16px; font-size: 13px; color: var(--text-secondary); font-weight: 600;">📊 支出分类</div>
+
+                <div class="category-item">
+                    <div class="category-item-name">🍽️ 伙食</div>
+                    <div class="category-item-actions">
+                        <span style="font-weight: 600;">RM1,650</span>
+                        <button class="delete-btn">删除</button>
+                    </div>
+                </div>
+
+                <div class="category-item">
+                    <div class="category-item-name">🛒 杂费</div>
+                    <div class="category-item-actions">
+                        <span style="font-weight: 600;">RM910</span>
+                        <button class="delete-btn">删除</button>
+                    </div>
+                </div>
+
+                <div class="category-item">
+                    <div class="category-item-name">🎫 马票</div>
+                    <div class="category-item-actions">
+                        <span style="font-weight: 600;">RM200</span>
+                        <button class="delete-btn">删除</button>
+                    </div>
+                </div>
+
+                <div class="category-item">
+                    <div class="category-item-name">🎰 赌博</div>
+                    <div class="category-item-actions">
+                        <span style="font-weight: 600;">RM450</span>
+                        <button class="delete-btn">删除</button>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary" style="margin-top: 16px; margin-bottom: 20px;">➕ 新增支出分类</button>
+
+                <div style="margin-bottom: 16px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); font-weight: 600;">💰 收入分类</div>
+
+                <div class="category-item">
+                    <div class="category-item-name">💰 收入</div>
+                    <div class="category-item-actions">
+                        <span style="font-weight: 600;">RM5,000</span>
+                        <button class="delete-btn">删除</button>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary" style="margin-top: 16px;">➕ 新增收入分类</button>
+            </div>
+        </div>
+
+        <!-- 底部导航 -->
+        <div class="bottom-nav">
+            <button class="nav-item active" onclick="switchScreen('home')">
+                <div class="nav-item-emoji">🏠</div>
+                <div class="nav-item-text">首页</div>
+            </button>
+            <button class="nav-item" onclick="switchScreen('add')">
+                <div class="nav-item-emoji">➕</div>
+                <div class="nav-item-text">记账</div>
+            </button>
+            <button class="nav-item" onclick="switchScreen('bills')">
+                <div class="nav-item-emoji">📝</div>
+                <div class="nav-item-text">账单</div>
+            </button>
+            <button class="nav-item" onclick="switchScreen('stats')">
+                <div class="nav-item-emoji">📊</div>
+                <div class="nav-item-text">统计</div>
+            </button>
+            <button class="nav-item" onclick="switchScreen('category')">
+                <div class="nav-item-emoji">🏷️</div>
+                <div class="nav-item-text">分类</div>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = 'Edward';
+        let selectedCategory = 'meal';
+        let selectedType = 'expense';
+
+        // 设置今天的日期
+        document.getElementById('date').valueAsDate = new Date();
+
+        // 切换屏幕
+        function switchScreen(screenId) {
+            // 隐藏所有屏幕
+            document.querySelectorAll('.screen').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // 显示选中的屏幕
+            const targetScreen = document.getElementById(`screen-${screenId}`);
+            if (targetScreen) {
+                targetScreen.classList.add('active');
+            }
+
+            // 更新导航栏样式
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // 找到对应的导航按钮并激活
+            const navItems = document.querySelectorAll('.nav-item');
+            const screenIds = ['home', 'add', 'bills', 'stats', 'category'];
+            const index = screenIds.indexOf(screenId);
+            if (index >= 0) {
+                navItems[index].classList.add('active');
+            }
+        }
+
+        // 更新分类选项
+        function updateCategories() {
+            const type = document.getElementById('type').value;
+            const categorySelect = document.getElementById('category');
+
+            if (type === 'expense') {
+                categorySelect.innerHTML = '<option value="meal">🍽️ 伙食</option><option value="misc">🛒 杂费</option><option value="lottery">🎫 马票</option><option value="gambling">🎰 赌博</option>';
+            } else if (type === 'income') {
+                categorySelect.innerHTML = '<option value="income">💰 收入</option>';
+            }
+        }
+
+        // 快速选择分类
+        function quickSelect(category) {
+            selectedCategory = category;
+
+            // 根据类别更新类型
+            if (category === 'income') {
+                document.getElementById('type').value = 'income';
+                updateCategories();
+            } else {
+                document.getElementById('type').value = 'expense';
+                updateCategories();
+            }
+
+            // 更新按钮样式
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 更新选择框
+            document.getElementById('category').value = category;
+        }
+
+        // 保存记录
+        function saveRecord() {
+            const amount = document.getElementById('amount').value;
+            const date = document.getElementById('date').value;
+            const note = document.getElementById('note').value;
+
+            if (!amount) {
+                alert('请输入金额');
+                return;
+            }
+
+            alert(`✅ 已记录：\n金额: RM${amount}\n日期: ${date}\n备注: ${note || '(无)'}\n\n数据将在 Day 2 保存到数据库`);
+
+            // 清空表单
+            document.getElementById('amount').value = '';
+            document.getElementById('note').value = '';
+        }
+
+        // 切换用户
+        function switchUser() {
+            currentUser = currentUser === 'Edward' ? 'Bernice' : 'Edward';
+            document.getElementById('current-user').textContent = currentUser;
+            alert(`已切换到 ${currentUser}`);
+        }
+
+        // 退出登录
+        function logout() {
+            if (confirm('确定要退出吗？')) {
+                alert('退出成功！\n登录页面将在 Day 2 实现');
+            }
+        }
+
+        // 切换每周详细信息
+        function toggleWeeklyDetails() {
+            const detailsCard = document.getElementById('weeklyDetailsCard');
+            const toggleBtn = document.getElementById('toggleText');
+
+            if (detailsCard.style.display === 'none' || detailsCard.style.display === '') {
+                detailsCard.style.display = 'block';
+                toggleBtn.textContent = '收起';
+            } else {
+                detailsCard.style.display = 'none';
+                toggleBtn.textContent = '展开';
+            }
+        }
+    </script>
+</body>
+</html>

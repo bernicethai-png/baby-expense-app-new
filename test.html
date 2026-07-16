@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>记账本 - 测试</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui; background: #f8fafc; height: 100vh; }
+        .container { display: flex; flex-direction: column; height: 100vh; }
+        .header { background: #1e40af; color: white; padding: 20px; text-align: center; }
+        .content { flex: 1; overflow-y: auto; padding-bottom: 60px; }
+        .screen { display: none; padding: 20px; }
+        .screen.active { display: block; }
+        .nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e2e8f0; }
+        .nav-item { flex: 1; padding: 12px; text-align: center; cursor: pointer; }
+        .nav-item.active { background: #3b82f6; color: white; }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .title { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">💰 宝宝共享记账本 - 测试版</div>
+        
+        <div class="content">
+            <div class="screen active" id="screen-home">
+                <div class="title">🏠 首页</div>
+                <div class="card">
+                    <div>本月支出: RM2,560</div>
+                    <div>本月收入: RM3,000</div>
+                </div>
+            </div>
+
+            <div class="screen" id="screen-add">
+                <div class="title">➕ 记账</div>
+                <div class="card">
+                    <input type="text" placeholder="分类">
+                    <input type="number" placeholder="金额">
+                    <button>保存</button>
+                </div>
+            </div>
+
+            <div class="screen" id="screen-bills">
+                <div class="title">📝 账单</div>
+                <div class="card">
+                    <div>2024-07-14: 伙食 -RM30</div>
+                    <div>2024-07-14: 杂费 -RM25</div>
+                </div>
+            </div>
+
+            <div class="screen" id="screen-stats">
+                <div class="title">📊 统计</div>
+                <div class="card">
+                    <div>伙食: RM1,650 (65%)</div>
+                    <div>杂费: RM910 (35%)</div>
+                </div>
+            </div>
+
+            <div class="screen" id="screen-category">
+                <div class="title">🏷️ 分类</div>
+                <div class="card">
+                    <div>🍽️ 伙食: RM1,650</div>
+                    <div>🛒 杂费: RM910</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav">
+            <div class="nav-item active" onclick="switchScreen('home')">🏠 首页</div>
+            <div class="nav-item" onclick="switchScreen('add')">➕ 记账</div>
+            <div class="nav-item" onclick="switchScreen('bills')">📝 账单</div>
+            <div class="nav-item" onclick="switchScreen('stats')">📊 统计</div>
+            <div class="nav-item" onclick="switchScreen('category')">🏷️ 分类</div>
+        </div>
+    </div>
+
+    <script>
+        function switchScreen(screenId) {
+            console.log('切换到:', screenId);
+            
+            // 隐藏所有屏幕
+            document.querySelectorAll('.screen').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // 显示选中的屏幕
+            document.getElementById(`screen-${screenId}`).classList.add('active');
+            
+            // 更新导航栏
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>
