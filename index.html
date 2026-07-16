@@ -1,183 +1,907 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>宝宝共享记账本</title>
+    <title>💰 宝宝共享记账本</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial; background: #f5f5f5; }
-        .container { max-width: 500px; margin: 0 auto; padding: 20px; }
-        .card { background: white; border-radius: 8px; padding: 15px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .nav { display: flex; gap: 10px; margin: 20px 0; }
-        .nav button { flex: 1; padding: 10px; border: none; border-radius: 4px; cursor: pointer; background: #007bff; color: white; }
-        .nav button.active { background: #0056b3; }
-        .screen { display: none; }
-        .screen.active { display: block; }
-        input, select { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
-        button { padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-        th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
-        .stat { display: inline-block; width: 48%; margin: 1%; padding: 15px; background: white; border-radius: 4px; text-align: center; }
-        .stat-value { font-size: 24px; font-weight: bold; color: #007bff; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>宝宝共享记账本</h1>
-        <div class="card">
-            <label>选择用户:</label>
-            <select id="userSelect" onchange="switchUser()">
-                <option value="">-- 选择用户 --</option>
-            </select>
-        </div>
-
-        <div class="nav">
-            <button class="active" onclick="showScreen('home')">首页</button>
-            <button onclick="showScreen('record')">记账</button>
-            <button onclick="showScreen('bills')">账单</button>
-            <button onclick="showScreen('stats')">统计</button>
-            <button onclick="showScreen('categories')">分类</button>
-        </div>
-
-        <div id="home" class="screen active">
-            <div class="stat">
-                <div>本月收入</div>
-                <div class="stat-value" id="monthIncome">0</div>
-            </div>
-            <div class="stat">
-                <div>本月支出</div>
-                <div class="stat-value" id="monthExpense">0</div>
-            </div>
-            <div class="card">
-                <div>结余: <strong id="monthBalance">0</strong></div>
-            </div>
-        </div>
-
-        <div id="record" class="screen">
-            <div class="card">
-                <label>类型:</label>
-                <select id="type"><option value="expense">支出</option><option value="income">收入</option></select>
-                <label>分类:</label>
-                <select id="category"></select>
-                <label>金额:</label>
-                <input type="number" id="amount" placeholder="0.00">
-                <label>日期:</label>
-                <input type="date" id="date">
-                <label>备注:</label>
-                <input type="text" id="note" placeholder="备注（可选）">
-                <button onclick="addTransaction()">保存</button>
-            </div>
-        </div>
-
-        <div id="bills" class="screen">
-            <table><tr><th>日期</th><th>分类</th><th>金额</th></tr><tbody id="billsTable"></tbody></table>
-        </div>
-
-        <div id="stats" class="screen">
-            <div id="statsContent"></div>
-        </div>
-
-        <div id="categories" class="screen">
-            <div class="card">
-                <label>类型:</label>
-                <select id="catType"><option value="expense">支出</option><option value="income">收入</option></select>
-                <label>分类名:</label>
-                <input type="text" id="catName" placeholder="输入分类名">
-                <button onclick="addCategory()">添加分类</button>
-            </div>
-            <div id="categoriesList"></div>
-        </div>
-    </div>
-
-    <script src="api.js"></script>
-    <script>
-        let currentUser = null;
-        let currentUserId = null;
-
-        async function initApp() {
-            const users = await getUsers();
-            const select = document.getElementById('userSelect');
-            users.forEach(u => {
-                const option = document.createElement('option');
-                option.value = u.id;
-                option.textContent = u.name;
-                select.appendChild(option);
-            });
-            loadCategories();
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        async function switchUser() {
-            currentUserId = document.getElementById('userSelect').value;
-            if (currentUserId) {
-                loadHomeStats();
-                loadBills();
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.6;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        :root {
+            --primary: #1e40af;
+            --primary-light: #3b82f6;
+            --surface: #f8fafc;
+            --surface-card: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background: var(--surface);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3c8a 100%);
+            color: white;
+            padding: 16px 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+
+        .user-bar {
+            background: var(--surface-card);
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .user-bar .current-user {
+            color: var(--text-secondary);
+        }
+
+        .user-bar .logout-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .user-bar .logout-btn:hover {
+            background: #1e3c8a;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 70px;
+            position: relative;
+        }
+
+        .screen {
+            display: none !important;
+            padding: 20px;
+            animation: fadeIn 0.3s ease-in;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            min-height: 100%;
+        }
+
+        .screen.active {
+            display: block !important;
+            position: relative;
+            top: auto;
+            left: auto;
+            right: auto;
+            min-height: auto;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
             }
         }
 
-        function showScreen(name) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(name).classList.add('active');
-            if (name === 'stats') loadStats();
+        .page-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--primary);
         }
 
-        async function addTransaction() {
+        .card {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .card-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            background: var(--surface-card);
+            color: var(--text-primary);
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1e3c8a;
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: var(--text-primary);
+        }
+
+        .quick-categories {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .category-btn {
+            padding: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface-card);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .category-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .bill-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .bill-item:last-child {
+            border-bottom: none;
+        }
+
+        .bill-left {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .bill-icon {
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .bill-info h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .bill-info p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .bill-amount {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .category-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .category-item-name {
+            font-weight: 600;
+        }
+
+        .category-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .delete-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            background: var(--surface-card);
+            border-top: 1px solid var(--border);
+            height: 70px;
+            z-index: 1000;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.3s;
+            font-size: 11px;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+
+        .nav-item-emoji {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .nav-item-text {
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .nav-item.active .nav-item-emoji {
+            transform: scale(1.1);
+        }
+    </style>
+    <script src="api.js"></script>
+    <script src="load_bills.js"></script>
+    <script src="load_home_stats.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <div class="header">💰 宝宝共享记账本</div>
+
+        <!-- 用户栏 -->
+        <div class="user-bar">
+            <span class="current-user">👤 当前用户: <strong id="current-user">Edward</strong></span>
+            <div>
+                <button class="btn-secondary" style="padding: 4px 12px; margin-right: 8px;" onclick="switchUser()">切换用户</button>
+                <button class="logout-btn" onclick="logout()">退出</button>
+            </div>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="content">
+            <!-- 屏幕 1: 首页 -->
+            <div class="screen active" id="screen-home">
+                <div style="text-align: center; padding: 40px; color: var(--text-secondary);">加载中...</div>
+            </div>
+
+            <!-- 屏幕 2: 记账 -->
+            <div class="screen" id="screen-add">
+                <div class="page-title">➕ 添加记账</div>
+
+                <div class="form-group">
+                    <label>类型</label>
+                    <select id="type" onchange="updateCategories()">
+                        <option value="expense">支出</option>
+                        <option value="income">收入</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>分类</label>
+                    <select id="category">
+                        <option value="meal">🍽️ 伙食</option>
+                        <option value="misc">🛒 杂费</option>
+                        <option value="lottery">🎫 马票</option>
+                        <option value="gambling">🎰 赌博</option>
+                        <option value="mortgage">🏠 房屋贷款</option>
+                        <option value="cp500">💳 CP 500</option>
+                        <option value="sideincome">💼 Side Income</option>
+                        <option value="borrow">💸 借贷</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>金额 (RM)</label>
+                    <input type="number" id="amount" placeholder="输入金额" step="0.01">
+                </div>
+
+                <div class="form-group">
+                    <label>日期</label>
+                    <input type="date" id="date" value="">
+                </div>
+
+                <div class="form-group">
+                    <label>备注 (可选)</label>
+                    <textarea id="note" placeholder="记录更多详情..."></textarea>
+                </div>
+
+                <button class="btn btn-primary" onclick="saveRecord()">保存</button>
+            </div>
+
+            <!-- 屏幕 3: 账单 -->
+            <div class="screen" id="screen-bills">
+                <div class="page-title">📝 账单流水</div>
+                <div id="bills-container" style="padding: 20px 0;">
+                    <div style="text-align: center; color: var(--text-secondary);">加载中...</div>
+                </div>
+            </div>
+
+            <!-- 屏幕 4: 统计 -->
+            <div class="screen" id="screen-stats">
+                <div style="text-align: center; padding: 40px; color: var(--text-secondary);">加载中...</div>
+            </div>
+
+            <!-- 屏幕 5: 分类 -->
+            <div class="screen" id="screen-category">
+                <div class="page-title">🏷️ 分类管理</div>
+                <div id="category-container" style="padding: 20px 0;">
+                    <div style="text-align: center; color: var(--text-secondary);">加载中...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部导航 -->
+        <div class="bottom-nav">
+            <button class="nav-item active" onclick="switchScreen('home')">
+                <div class="nav-item-emoji">🏠</div>
+                <div class="nav-item-text">首页</div>
+            </button>
+            <button class="nav-item" onclick="switchScreen('add')">
+                <div class="nav-item-emoji">➕</div>
+                <div class="nav-item-text">记账</div>
+            </button>
+            <button class="nav-item" onclick="switchScreen('bills')">
+                <div class="nav-item-emoji">📝</div>
+                <div class="nav-item-text">账单</div>
+            </button>
+            <button class="nav-item" onclick="switchScreen('stats')">
+                <div class="nav-item-emoji">📊</div>
+                <div class="nav-item-text">统计</div>
+            </button>
+            <button class="nav-item" onclick="switchScreen('category')">
+                <div class="nav-item-emoji">🏷️</div>
+                <div class="nav-item-text">分类</div>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = 'Edward';
+        let currentUserId = 1;  // Edward = 1, Bernice = 2
+        let selectedCategory = 'meal';
+        let selectedType = 'expense';
+        let currentTimeRange = 'month';  // 当前时间范围
+
+        // 设置今天的日期
+        document.getElementById('date').valueAsDate = new Date();
+
+        // 切换屏幕
+        function switchScreen(screenId) {
+            // 隐藏所有屏幕
+            document.querySelectorAll('.screen').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // 显示选中的屏幕
+            const targetScreen = document.getElementById(`screen-${screenId}`);
+            if (targetScreen) {
+                targetScreen.classList.add('active');
+            }
+
+            // 根据屏幕类型重新加载数据
+            if (screenId === 'bills') {
+                loadBills();
+            } else if (screenId === 'home') {
+                loadHomeData();
+            } else if (screenId === 'stats') {
+                loadStatsData();
+            } else if (screenId === 'category') {
+                loadCategoryData();
+            }
+
+            // 更新导航栏样式
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // 找到对应的导航按钮并激活
+            const navItems = document.querySelectorAll('.nav-item');
+            const screenIds = ['home', 'add', 'bills', 'stats', 'category'];
+            const index = screenIds.indexOf(screenId);
+            if (index >= 0) {
+                navItems[index].classList.add('active');
+            }
+        }
+
+        // 更新分类选项（从后端动态加载）
+        async function updateCategories() {
             const type = document.getElementById('type').value;
-            const category = document.getElementById('category').value;
-            const amount = parseFloat(document.getElementById('amount').value);
+            const categorySelect = document.getElementById('category');
+
+            // 从后端获取分类
+            const categories = await getCategories();
+
+            // 筛选对应类型的分类
+            const filteredCategories = categories.filter(c => c.type === type);
+
+            // 生成选项
+            let html = '';
+            filteredCategories.forEach(cat => {
+                html += `<option value="${cat.name}">${cat.name}</option>`;
+            });
+
+            categorySelect.innerHTML = html;
+        }
+
+        // 快速选择分类
+        function quickSelect(category) {
+            selectedCategory = category;
+
+            // 根据类别更新类型
+            if (category === 'income') {
+                document.getElementById('type').value = 'income';
+                updateCategories();
+            } else {
+                document.getElementById('type').value = 'expense';
+                updateCategories();
+            }
+
+            // 更新按钮样式
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 更新选择框
+            document.getElementById('category').value = category;
+        }
+
+        // 保存记录
+        async function saveRecord() {
+            const amount = document.getElementById('amount').value;
             const date = document.getElementById('date').value;
+            const category = document.getElementById('category').value;
             const note = document.getElementById('note').value;
+            const type = document.getElementById('type').value;
 
-            if (!category || !amount) return alert('请填写必填项');
-            await addTransactionAPI({ user_id: currentUserId, type, category, amount, date: date || new Date().toISOString().split('T')[0], note });
+            if (!amount) {
+                alert('请输入金额');
+                return;
+            }
+
+            // 获取当前用户ID（1=Edward, 2=Bernice）
+            const userId = currentUser === 'Edward' ? 1 : 2;
+
+            // 准备数据
+            const transactionData = {
+                user_id: userId,
+                type: type,
+                category: category,
+                amount: parseFloat(amount),
+                date: date,
+                note: note
+            };
+
+            // 调用API保存
+            const result = await addTransaction(transactionData);
+
+            if (result.success) {
+                alert(`✅ 已保存：\n用户: ${currentUser}\n类型: ${type}\n分类: ${category}\n金额: RM${amount}\n日期: ${date}\n备注: ${note || '(无)'}`);
+
+                // 清空表单
+                document.getElementById('amount').value = '';
+                document.getElementById('note').value = '';
+                document.getElementById('date').valueAsDate = new Date();
+            } else {
+                alert(`❌ 保存失败: ${result.error || '未知错误'}`);
+            }
+        }
+
+        // 切换用户
+        function switchUser() {
+            if (currentUser === 'Edward') {
+                currentUser = 'Bernice';
+                currentUserId = 2;
+            } else {
+                currentUser = 'Edward';
+                currentUserId = 1;
+            }
+            document.getElementById('current-user').textContent = currentUser;
+
+            // 重新加载所有数据
+            loadHomeData();
             loadBills();
-            loadHomeStats();
-            document.getElementById('amount').value = '';
-            document.getElementById('note').value = '';
+            loadStatsData();
+            updateCategories();
+
+            alert(`已切换到 ${currentUser}`);
         }
 
-        async function loadHomeStats() {
-            const stats = await getStatistics(currentUserId);
-            document.getElementById('monthIncome').textContent = stats.total_income.toFixed(2);
-            document.getElementById('monthExpense').textContent = stats.total_expense.toFixed(2);
-            document.getElementById('monthBalance').textContent = stats.balance.toFixed(2);
+        // 退出登录
+        function logout() {
+            if (confirm('确定要退出吗？')) {
+                alert('退出成功！\n登录页面将在 Day 2 实现');
+            }
         }
 
-        async function loadBills() {
-            const txns = await getTransactions({ user_id: currentUserId });
-            const html = txns.map(t => `<tr><td>${t.date}</td><td>${t.category}</td><td>${t.amount}</td></tr>`).join('');
-            document.getElementById('billsTable').innerHTML = html;
+        // 展开/收起卡片
+        function toggleExpandCard(cardId) {
+            const card = document.getElementById(cardId);
+            const icon = document.getElementById(`expandIcon-${cardId}`);
+
+            if (card.style.display === 'none') {
+                card.style.display = 'block';
+                icon.textContent = '▲';
+            } else {
+                card.style.display = 'none';
+                icon.textContent = '▼';
+            }
         }
 
-        async function loadStats() {
-            const stats = await getStatistics(currentUserId);
-            document.getElementById('statsContent').innerHTML = `
-                <div class="card"><strong>收入:</strong> ${stats.total_income.toFixed(2)}</div>
-                <div class="card"><strong>支出:</strong> ${stats.total_expense.toFixed(2)}</div>
-                <div class="card"><strong>结余:</strong> ${stats.balance.toFixed(2)}</div>
-            `;
+        // 处理时间范围变化
+        function handleTimeRangeChange(value) {
+            currentTimeRange = value;  // 保存当前时间范围
+            const customDateRange = document.getElementById('customDateRange');
+            if (value === 'custom') {
+                customDateRange.style.display = 'block';
+            } else {
+                customDateRange.style.display = 'none';
+                // 重新加载统计数据
+                loadStatsData();
+            }
         }
 
-        async function loadCategories() {
-            const cats = await getCategories();
-            const select = document.getElementById('category');
-            const catType = 'expense';
-            select.innerHTML = cats.filter(c => c.type === catType).map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-            
-            const list = document.getElementById('categoriesList');
-            list.innerHTML = cats.map(c => `<div class="card">${c.type}: ${c.name}</div>`).join('');
+        // 应用自定义日期范围
+        function applyCustomDateRange() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            if (!startDate || !endDate) {
+                alert('请选择开始和结束日期！');
+                return;
+            }
+
+            // 重新加载统计数据
+            loadStatsData();
         }
 
-        async function addCategory() {
-            const type = document.getElementById('catType').value;
-            const name = document.getElementById('catName').value;
-            if (!name) return alert('请输入分类名');
-            await addCategoryAPI(type, name);
-            loadCategories();
-            document.getElementById('catName').value = '';
+        // 切换每周详细信息
+        function toggleWeeklyDetails() {
+            const detailsCard = document.getElementById('weeklyDetailsCard');
+            const toggleBtn = document.getElementById('toggleText');
+
+            if (detailsCard.style.display === 'none' || detailsCard.style.display === '') {
+                detailsCard.style.display = 'block';
+                toggleBtn.textContent = '收起';
+            } else {
+                detailsCard.style.display = 'none';
+                toggleBtn.textContent = '展开';
+            }
         }
 
-        initApp();
+        // 切换独立开销
+        function toggleIndependentExpense() {
+            const card = document.getElementById('independentExpenseCard');
+            const btn = document.getElementById('toggleIndependentExpenseText');
+
+            if (card.style.display === 'none' || card.style.display === '') {
+                card.style.display = 'block';
+                btn.textContent = '收起';
+            } else {
+                card.style.display = 'none';
+                btn.textContent = '展开';
+            }
+        }
+
+        // 切换独立收入
+        function toggleIndependentIncome() {
+            const card = document.getElementById('independentIncomeCard');
+            const btn = document.getElementById('toggleIndependentIncomeText');
+
+            if (card.style.display === 'none' || card.style.display === '') {
+                card.style.display = 'block';
+                btn.textContent = '收起';
+            } else {
+                card.style.display = 'none';
+                btn.textContent = '展开';
+            }
+        }
+
+        // 显示新增分类对话框
+        async function showAddCategoryDialog(type) {
+            const typeText = type === 'expense' ? '支出' : '收入';
+
+            // 输入分类名称
+            const categoryName = prompt(`请输入${typeText}分类名称：`, '');
+
+            if (!categoryName) {
+                alert('分类名称不能为空！');
+                return;
+            }
+
+            console.log('添加分类:', type, categoryName);
+
+            // 保存分类
+            const result = await addCategory(type, categoryName);
+            console.log('保存结果:', result);
+
+            if (result.success) {
+                alert(`✅ 分类已添加: ${categoryName}`);
+                // 刷新分类页面
+                loadCategoryData();
+            } else {
+                alert(`❌ 添加失败: ${result.error || '未知错误'}`);
+            }
+        }
+
+        // 加载分类数据
+        async function loadCategoryData() {
+            const categories = await getCategories();
+            console.log('分类数据:', categories);
+
+            if (!categories || categories.length === 0) {
+                document.getElementById('category-container').innerHTML = '<div style="text-align: center; color: var(--text-secondary);">暂无分类</div>';
+                return;
+            }
+
+            // 分离支出和收入分类
+            const expenseCategories = categories.filter(c => c.type === 'expense');
+            const incomeCategories = categories.filter(c => c.type === 'income');
+
+            let html = '';
+
+            // 支出分类
+            if (expenseCategories.length > 0) {
+                html += '<div style="margin-bottom: 16px; font-size: 13px; color: var(--text-secondary); font-weight: 600;">📊 支出分类</div>';
+                expenseCategories.forEach(cat => {
+                    html += `
+                        <div class="category-item">
+                            <div class="category-item-name">${cat.name}</div>
+                            <div class="category-item-actions" style="gap: 8px;">
+                                <button style="padding: 4px 8px; font-size: 12px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;" onclick="editCategory(${cat.id}, '${cat.name}', 'loadCategoryData')">编辑</button>
+                                <button class="delete-btn" onclick="deleteCategory(${cat.id}, 'loadCategoryData')">删除</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '<button class="btn btn-secondary" style="margin-top: 16px; margin-bottom: 20px;" onclick="showAddCategoryDialog(\'expense\')">➕ 新增支出分类</button>';
+            }
+
+            // 收入分类
+            if (incomeCategories.length > 0) {
+                html += '<div style="margin-bottom: 16px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); font-weight: 600;">💰 收入分类</div>';
+                incomeCategories.forEach(cat => {
+                    html += `
+                        <div class="category-item">
+                            <div class="category-item-name">${cat.name}</div>
+                            <div class="category-item-actions" style="gap: 8px;">
+                                <button style="padding: 4px 8px; font-size: 12px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;" onclick="editCategory(${cat.id}, '${cat.name}', 'loadCategoryData')">编辑</button>
+                                <button class="delete-btn" onclick="deleteCategory(${cat.id}, 'loadCategoryData')">删除</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '<button class="btn btn-secondary" style="margin-top: 16px;" onclick="showAddCategoryDialog(\'income\')">➕ 新增收入分类</button>';
+            }
+
+            document.getElementById('category-container').innerHTML = html;
+        }
+
+        // 页面加载时调用loadCategoryData
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadCategoryData);
+        } else {
+            loadCategoryData();
+        }
+
+        // 编辑分类
+        async function editCategory(categoryId, oldName, callback) {
+            const newName = prompt(`编辑分类名称：`, oldName);
+
+            if (!newName || newName === oldName) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name: newName })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ 分类已更新');
+                    if (callback) window[callback]();
+                } else {
+                    alert('❌ 更新失败');
+                }
+            } catch (error) {
+                console.error('编辑分类失败:', error);
+                alert('❌ 更新失败');
+            }
+        }
+
+        // 删除分类
+        async function deleteCategory(categoryId, callback) {
+            if (!confirm('确定要删除这个分类吗？')) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ 分类已删除');
+                    if (callback) window[callback]();
+                } else {
+                    alert('❌ 删除失败');
+                }
+            } catch (error) {
+                console.error('删除分类失败:', error);
+                alert('❌ 删除失败');
+            }
+        }
+
+        // 编辑账单
+        async function editBill(transactionId, oldAmount, oldNote, callback) {
+            const newAmount = prompt(`编辑金额：`, oldAmount);
+            if (!newAmount) return;
+
+            const newNote = prompt(`编辑备注：`, oldNote || '');
+
+            try {
+                const result = await updateTransaction(transactionId, {
+                    amount: parseFloat(newAmount),
+                    note: newNote
+                });
+
+                if (result.success) {
+                    alert('✅ 记录已更新');
+                    if (callback) window[callback]();
+                } else {
+                    alert('❌ 更新失败');
+                }
+            } catch (error) {
+                console.error('编辑账单失败:', error);
+                alert('❌ 更新失败');
+            }
+        }
+
+        // 删除账单
+        async function deleteBill(transactionId, callback) {
+            if (!confirm('确定要删除这条记录吗？')) return;
+
+            try {
+                const result = await deleteTransaction(transactionId);
+
+                if (result.success) {
+                    alert('✅ 记录已删除');
+                    if (callback) window[callback]();
+                } else {
+                    alert('❌ 删除失败');
+                }
+            } catch (error) {
+                console.error('删除账单失败:', error);
+                alert('❌ 删除失败');
+            }
+        }
     </script>
 </body>
 </html>
