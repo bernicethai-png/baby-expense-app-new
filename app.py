@@ -1,9 +1,6 @@
-"""
-宝宝共享记账本 - Flask 后端应用
-"""
+"""宝宝共享记账本"""
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
 from models import db, User, Transaction, Category
@@ -16,38 +13,24 @@ CORS(app)
 with app.app_context():
     db.create_all()
     if not User.query.first():
-        edward = User(name='Edward', email='edward@example.com')
-        bernice = User(name='Bernice', email='bernice@example.com')
-        db.session.add(edward)
-        db.session.add(bernice)
+        db.session.add(User(name='Edward', email='edward@example.com'))
+        db.session.add(User(name='Bernice', email='bernice@example.com'))
         db.session.commit()
-    
     if not Category.query.first():
-        categories = [
-            ('expense', '伙食'), ('expense', '杂费'), ('expense', '马票'),
-            ('expense', '赌博'), ('expense', '房屋贷款'), ('expense', 'CP 500'),
-            ('expense', 'Side Income'), ('income', '借贷'), ('income', '收入'),
-            ('income', '银行利息/股息'), ('income', 'WL Salary'),
-            ('income', 'HMSB Incentive'), ('income', 'OJ Incentive'),
-            ('income', 'Lepas Incentive'), ('income', 'SleepyFace Studio Account'),
-        ]
-        for type_, name in categories:
-            if not Category.query.filter_by(type=type_, name=name).first():
-                db.session.add(Category(type=type_, name=name))
+        for t, n in [('expense','伙食'),('expense','杂费'),('expense','马票'),('expense','赌博'),('expense','房屋贷款'),('expense','CP 500'),('expense','Side Income'),('income','借贷'),('income','收入'),('income','银行利息/股息'),('income','WL Salary'),('income','HMSB Incentive'),('income','OJ Incentive'),('income','Lepas Incentive'),('income','SleepyFace Studio Account')]:
+            if not Category.query.filter_by(type=t, name=n).first():
+                db.session.add(Category(type=t, name=n))
         db.session.commit()
 
 @app.route('/api/users', methods=['GET'])
 def get_users():
-    users = User.query.all()
-    return jsonify([{'id': u.id, 'name': u.name, 'email': u.email} for u in users])
+    return jsonify([{'id': u.id, 'name': u.name, 'email': u.email} for u in User.query.all()])
 
 @app.route('/api/transactions', methods=['POST'])
 def add_transaction():
-    data = request.get_json()
     try:
-        t = Transaction(user_id=data.get('user_id'), type=data.get('type'),
-            category=data.get('category'), amount=float(data.get('amount')),
-            date=data.get('date', datetime.now().strftime('%Y-%m-%d')), note=data.get('note', ''))
+        data = request.get_json()
+        t = Transaction(user_id=data.get('user_id'), type=data.get('type'), category=data.get('category'), amount=float(data.get('amount')), date=data.get('date', datetime.now().strftime('%Y-%m-%d')), note=data.get('note', ''))
         db.session.add(t)
         db.session.commit()
         return jsonify({'id': t.id, 'message': '交易记录已保存'}), 201
@@ -57,29 +40,22 @@ def add_transaction():
 
 @app.route('/api/transactions', methods=['GET'])
 def get_transactions():
-    user_id = request.args.get('user_id')
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    query = Transaction.query
-    if user_id:
-        query = query.filter_by(user_id=user_id)
-    if start_date:
-        query = query.filter(Transaction.date >= start_date)
-    if end_date:
-        query = query.filter(Transaction.date <= end_date)
-    return jsonify([{'id': t.id, 'user_id': t.user_id, 'type': t.type,
-        'category': t.category, 'amount': t.amount, 'date': t.date, 'note': t.note} for t in query.all()])
+    user_id, start_date, end_date = request.args.get('user_id'), request.args.get('start_date'), request.args.get('end_date')
+    q = Transaction.query
+    if user_id: q = q.filter_by(user_id=user_id)
+    if start_date: q = q.filter(Transaction.date >= start_date)
+    if end_date: q = q.filter(Transaction.date <= end_date)
+    return jsonify([{'id': t.id, 'user_id': t.user_id, 'type': t.type, 'category': t.category, 'amount': t.amount, 'date': t.date, 'note': t.note} for t in q.all()])
 
 @app.route('/api/statistics', methods=['GET'])
 def get_statistics():
     user_id = request.args.get('user_id')
-    query = Transaction.query
-    if user_id:
-        query = query.filter_by(user_id=user_id)
-    transactions = query.all()
-    total_expense = sum(t.amount for t in transactions if t.type == 'expense')
-    total_income = sum(t.amount for t in transactions if t.type == 'income')
-    return jsonify({'total_expense': total_expense, 'total_income': total_income, 'balance': total_income - total_expense})
+    q = Transaction.query
+    if user_id: q = q.filter_by(user_id=user_id)
+    ts = q.all()
+    te = sum(t.amount for t in ts if t.type == 'expense')
+    ti = sum(t.amount for t in ts if t.type == 'income')
+    return jsonify({'total_expense': te, 'total_income': ti, 'balance': ti - te})
 
 @app.route('/api/categories', methods=['GET'])
 def get_categories():
@@ -87,8 +63,8 @@ def get_categories():
 
 @app.route('/api/categories', methods=['POST'])
 def add_category():
-    data = request.get_json()
     try:
+        data = request.get_json()
         c = Category(type=data.get('type'), name=data.get('name'))
         db.session.add(c)
         db.session.commit()
