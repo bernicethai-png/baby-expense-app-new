@@ -33,10 +33,40 @@ def add_transaction():
         t = Transaction(user_id=data.get('user_id'), type=data.get('type'), category=data.get('category'), amount=float(data.get('amount')), date=data.get('date', datetime.now().strftime('%Y-%m-%d')), note=data.get('note', ''))
         db.session.add(t)
         db.session.commit()
-        return jsonify({'id': t.id, 'message': '交易记录已保存'}), 201
+        return jsonify({'success': True, 'id': t.id, 'message': '交易记录已保存'}), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/api/transactions/<int:transaction_id>', methods=['PUT'])
+def update_transaction(transaction_id):
+    t = Transaction.query.get(transaction_id)
+    if not t:
+        return jsonify({'success': False, 'error': '记录不存在'}), 404
+    try:
+        data = request.get_json()
+        if 'amount' in data: t.amount = float(data['amount'])
+        if 'category' in data: t.category = data['category']
+        if 'note' in data: t.note = data['note']
+        if 'date' in data: t.date = data['date']
+        db.session.commit()
+        return jsonify({'success': True, 'message': '记录已更新'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/api/transactions/<int:transaction_id>', methods=['DELETE'])
+def delete_transaction(transaction_id):
+    t = Transaction.query.get(transaction_id)
+    if not t:
+        return jsonify({'success': False, 'error': '记录不存在'}), 404
+    try:
+        db.session.delete(t)
+        db.session.commit()
+        return jsonify({'success': True, 'message': '记录已删除'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 @app.route('/api/transactions', methods=['GET'])
 def get_transactions():
@@ -68,10 +98,37 @@ def add_category():
         c = Category(type=data.get('type'), name=data.get('name'))
         db.session.add(c)
         db.session.commit()
-        return jsonify({'id': c.id, 'message': '分类已保存'}), 201
+        return jsonify({'success': True, 'id': c.id, 'message': '分类已保存'}), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/api/categories/<int:category_id>', methods=['PUT'])
+def update_category(category_id):
+    c = Category.query.get(category_id)
+    if not c:
+        return jsonify({'success': False, 'error': '分类不存在'}), 404
+    try:
+        data = request.get_json()
+        if 'name' in data: c.name = data['name']
+        db.session.commit()
+        return jsonify({'success': True, 'message': '分类已更新'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/api/categories/<int:category_id>', methods=['DELETE'])
+def delete_category(category_id):
+    c = Category.query.get(category_id)
+    if not c:
+        return jsonify({'success': False, 'error': '分类不存在'}), 404
+    try:
+        db.session.delete(c)
+        db.session.commit()
+        return jsonify({'success': True, 'message': '分类已删除'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 @app.route('/api/health', methods=['GET'])
 def health_check():

@@ -24,6 +24,20 @@ async function addTransactionAPI(data) {
     }).then(r => r.json());
 }
 
+async function updateTransaction(transactionId, updateData) {
+    return fetch(API_BASE_URL + '/transactions/' + transactionId, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+    }).then(r => r.json());
+}
+
+async function deleteTransaction(transactionId) {
+    return fetch(API_BASE_URL + '/transactions/' + transactionId, {
+        method: 'DELETE'
+    }).then(r => r.json());
+}
+
 async function getStatistics(userId) {
     let url = API_BASE_URL + '/statistics';
     if (userId) url += '?user_id=' + userId;
