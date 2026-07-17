@@ -75,17 +75,61 @@ def get_transactions():
     if user_id: q = q.filter_by(user_id=user_id)
     if start_date: q = q.filter(Transaction.date >= start_date)
     if end_date: q = q.filter(Transaction.date <= end_date)
-    return jsonify([{'id': t.id, 'user_id': t.user_id, 'type': t.type, 'category': t.category, 'amount': t.amount, 'date': t.date, 'note': t.note} for t in q.all()])
+    return jsonify([{'id': t.id, 'user_id': t.user_id, 'user_name': t.user.name, 'type': t.type, 'category': t.category, 'amount': t.amount, 'date': t.date, 'note': t.note, 'created_at': t.created_at.isoformat()} for t in q.all()])
 
 @app.route('/api/statistics', methods=['GET'])
 def get_statistics():
-    user_id = request.args.get('user_id')
-    q = Transaction.query
+    """获取本月统计数据"""
+    user_id = request.args.get('user_id', type=int)
+
+    today = datetime.now()
+    month_start = today.replace(day=1).strftime('%Y-%m-%d')
+    month_end = today.strftime('%Y-%m-%d')
+
+    q = Transaction.query.filter(Transaction.date >= month_start, Transaction.date <= month_end)
     if user_id: q = q.filter_by(user_id=user_id)
     ts = q.all()
-    te = sum(t.amount for t in ts if t.type == 'expense')
-    ti = sum(t.amount for t in ts if t.type == 'income')
-    return jsonify({'total_expense': te, 'total_income': ti, 'balance': ti - te})
+
+    total_expense = sum(t.amount for t in ts if t.type == 'expense')
+    total_income = sum(t.amount for t in ts if t.type == 'income')
+
+    expense_by_category = {}
+    income_by_category = {}
+    for t in ts:
+        target = expense_by_category if t.type == 'expense' else income_by_category
+        target[t.category] = target.get(t.category, 0) + t.amount
+
+    user_stats = {}
+    user_income_by_category = {}
+    user_expense_by_category = {}
+    for user in User.query.all():
+        user_ts = Transaction.query.filter(
+            Transaction.date >= month_start,
+            Transaction.date <= month_end,
+            Transaction.user_id == user.id
+        ).all()
+        user_stats[user.name] = {
+            'income': sum(t.amount for t in user_ts if t.type == 'income'),
+            'expense': sum(t.amount for t in user_ts if t.type == 'expense'),
+        }
+        income_cat, expense_cat = {}, {}
+        for t in user_ts:
+            target = expense_cat if t.type == 'expense' else income_cat
+            target[t.category] = target.get(t.category, 0) + t.amount
+        user_income_by_category[user.name] = income_cat
+        user_expense_by_category[user.name] = expense_cat
+
+    return jsonify({
+        'total_expense': total_expense,
+        'total_income': total_income,
+        'balance': total_income - total_expense,
+        'expense_by_category': expense_by_category,
+        'income_by_category': income_by_category,
+        'user_stats': user_stats,
+        'user_income_by_category': user_income_by_category,
+        'user_expense_by_category': user_expense_by_category,
+        'month': month_start
+    })
 
 @app.route('/api/categories', methods=['GET'])
 def get_categories():
