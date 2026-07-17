@@ -1,13 +1,19 @@
 import os
 
-# 如果挂载了 Render Persistent Disk（挂载路径 /var/data），数据库文件存在磁盘上，
-# 不会因为重新部署而丢失；否则退回到本地 instance/ 目录（本地开发用）。
-if os.path.isdir('/var/data'):
-    DB_DIR = '/var/data'
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    # 部分服务商（包括 Neon）给出的连接串前缀是 postgres://，
+    # 但 SQLAlchemy 2.0 要求 postgresql://
+    if DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    SQLALCHEMY_URI = DATABASE_URL
 else:
+    # 未配置 DATABASE_URL 时（本地开发），退回本地 SQLite 文件
     DB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance')
     os.makedirs(DB_DIR, exist_ok=True)
+    SQLALCHEMY_URI = 'sqlite:///' + os.path.join(DB_DIR, 'database.db')
 
 class Config:
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DB_DIR, 'database.db')
+    SQLALCHEMY_DATABASE_URI = SQLALCHEMY_URI
     SQLALCHEMY_TRACK_MODIFICATIONS = False
