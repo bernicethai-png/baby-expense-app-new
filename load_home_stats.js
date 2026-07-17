@@ -118,6 +118,22 @@ async function loadStatsData() {
         const incomeByCategory = stats?.income_by_category || {};
         const userIncomeByCategory = stats?.user_income_by_category || { Edward: {}, Bernice: {} };
         const userExpenseByCategory = stats?.user_expense_by_category || { Edward: {}, Bernice: {} };
+        const weeklyStats = stats?.weekly_stats || [];
+
+        // 生成每周开销HTML
+        const weeklyHTML = weeklyStats.map(w => `
+            <div class="card" style="margin-bottom: 0;">
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">第${w.week}周</div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                    <span>开销</span>
+                    <span style="font-weight: 600;">RM${w.expense.toFixed(2)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                    <span>净开销</span>
+                    <span style="font-weight: 600; color: #ef4444;">RM${w.net.toFixed(2)}</span>
+                </div>
+            </div>
+        `).join('');
 
         // 生成支出分类HTML
         let categoryHTML = '';
@@ -162,53 +178,7 @@ async function loadStatsData() {
             <div style="margin-bottom: 16px; margin-top: 20px; font-weight: 600; color: var(--text-primary);">📅 每周开销详情</div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <div class="card" style="margin-bottom: 0;">
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">第1周</div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
-                        <span>开销</span>
-                        <span style="font-weight: 600;">RM0.00</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                        <span>净开销</span>
-                        <span style="font-weight: 600; color: #ef4444;">RM0.00</span>
-                    </div>
-                </div>
-
-                <div class="card" style="margin-bottom: 0;">
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">第2周</div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
-                        <span>开销</span>
-                        <span style="font-weight: 600;">RM0.00</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                        <span>净开销</span>
-                        <span style="font-weight: 600; color: #ef4444;">RM0.00</span>
-                    </div>
-                </div>
-
-                <div class="card" style="margin-bottom: 0;">
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">第3周</div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
-                        <span>开销</span>
-                        <span style="font-weight: 600;">RM0.00</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                        <span>净开销</span>
-                        <span style="font-weight: 600; color: #ef4444;">RM0.00</span>
-                    </div>
-                </div>
-
-                <div class="card" style="margin-bottom: 0;">
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">第4周</div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
-                        <span>开销</span>
-                        <span style="font-weight: 600;">RM0.00</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                        <span>净开销</span>
-                        <span style="font-weight: 600; color: #ef4444;">RM0.00</span>
-                    </div>
-                </div>
+                ${weeklyHTML}
             </div>
 
             <div style="margin-bottom: 16px; margin-top: 20px; font-weight: 600; color: var(--text-primary);">本月汇总</div>

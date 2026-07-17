@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from datetime import datetime
+import calendar
 import os
 from models import db, User, Transaction, Category
 from config import Config
@@ -119,6 +120,21 @@ def get_statistics():
         user_income_by_category[user.name] = income_cat
         user_expense_by_category[user.name] = expense_cat
 
+    # 按周统计（本月分4周：1-7, 8-14, 15-21, 22-月末）
+    days_in_month = calendar.monthrange(today.year, today.month)[1]
+    week_ranges = [(1, 7), (8, 14), (15, 21), (22, days_in_month)]
+    weekly_stats = []
+    for i, (start_day, end_day) in enumerate(week_ranges, start=1):
+        week_ts = [t for t in ts if start_day <= int(t.date[8:10]) <= end_day]
+        w_expense = sum(t.amount for t in week_ts if t.type == 'expense')
+        w_income = sum(t.amount for t in week_ts if t.type == 'income')
+        weekly_stats.append({
+            'week': i,
+            'expense': w_expense,
+            'income': w_income,
+            'net': w_expense - w_income
+        })
+
     return jsonify({
         'total_expense': total_expense,
         'total_income': total_income,
@@ -126,6 +142,7 @@ def get_statistics():
         'expense_by_category': expense_by_category,
         'income_by_category': income_by_category,
         'user_stats': user_stats,
+        'weekly_stats': weekly_stats,
         'user_income_by_category': user_income_by_category,
         'user_expense_by_category': user_expense_by_category,
         'month': month_start
