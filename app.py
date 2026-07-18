@@ -50,7 +50,22 @@ def get_transactions():
     if user_id: q = q.filter_by(user_id=user_id)
     if start_date: q = q.filter(Transaction.date >= start_date)
     if end_date: q = q.filter(Transaction.date <= end_date)
-    return jsonify([{'id': t.id, 'user_id': t.user_id, 'type': t.type, 'category': t.category, 'amount': t.amount, 'date': t.date, 'note': t.note} for t in q.all()])
+
+    result = []
+    for t in q.all():
+        user = User.query.get(t.user_id)
+        result.append({
+            'id': t.id,
+            'user_id': t.user_id,
+            'user_name': user.name if user else 'Unknown',
+            'type': t.type,
+            'category': t.category,
+            'amount': t.amount,
+            'date': t.date,
+            'created_at': f"{t.date}T00:00:00",
+            'note': t.note
+        })
+    return jsonify(result)
 
 @app.route('/api/statistics', methods=['GET'])
 def get_statistics():
