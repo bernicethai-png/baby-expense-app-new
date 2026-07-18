@@ -38,10 +38,10 @@ def add_transaction():
         t = Transaction(user_id=data.get('user_id'), type=data.get('type'), category=data.get('category'), amount=float(data.get('amount')), date=data.get('date', datetime.now().strftime('%Y-%m-%d')), note=data.get('note', ''))
         db.session.add(t)
         db.session.commit()
-        return jsonify({'id': t.id, 'message': '交易记录已保存'}), 201
+        return jsonify({'success': True, 'id': t.id, 'message': '交易记录已保存'}), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 @app.route('/api/transactions', methods=['GET'])
 def get_transactions():
