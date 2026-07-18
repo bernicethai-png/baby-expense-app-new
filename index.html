@@ -635,7 +635,7 @@
             };
 
             // 调用API保存
-            const result = await addTransaction(transactionData);
+            const result = await addTransactionAPI(transactionData);
 
             if (result.success) {
                 alert(`✅ 已保存：\n用户: ${currentUser}\n类型: ${type}\n分类: ${category}\n金额: RM${amount}\n日期: ${date}\n备注: ${note || '(无)'}`);
