@@ -142,10 +142,6 @@ async function loadStatsData() {
         const statsHTML = `
             <div class="page-title">📊 统计分析</div>
 
-            <div style="background: #fff3cd; padding: 8px 12px; margin-bottom: 12px; border-radius: 4px; font-size: 12px; color: #664d03;">
-                <strong>DEBUG:</strong> currentTimeRange = <strong>${currentTimeRange}</strong>
-            </div>
-
             <div class="form-group">
                 <label>时间范围</label>
                 <select id="timeRangeSelect" onchange="handleTimeRangeChange(this.value)">
