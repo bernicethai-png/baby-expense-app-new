@@ -73,9 +73,39 @@ def get_statistics():
     q = Transaction.query
     if user_id: q = q.filter_by(user_id=user_id)
     ts = q.all()
+
     te = sum(t.amount for t in ts if t.type == 'expense')
     ti = sum(t.amount for t in ts if t.type == 'income')
-    return jsonify({'total_expense': te, 'total_income': ti, 'balance': ti - te})
+
+    # 按分类统计
+    expense_by_category = {}
+    income_by_category = {}
+    user_expense_by_category = {'Edward': {}, 'Bernice': {}}
+    user_income_by_category = {'Edward': {}, 'Bernice': {}}
+
+    for t in ts:
+        user_name = User.query.get(t.user_id).name if User.query.get(t.user_id) else 'Unknown'
+
+        if t.type == 'expense':
+            expense_by_category[t.category] = expense_by_category.get(t.category, 0) + t.amount
+            if user_name not in user_expense_by_category:
+                user_expense_by_category[user_name] = {}
+            user_expense_by_category[user_name][t.category] = user_expense_by_category[user_name].get(t.category, 0) + t.amount
+        else:
+            income_by_category[t.category] = income_by_category.get(t.category, 0) + t.amount
+            if user_name not in user_income_by_category:
+                user_income_by_category[user_name] = {}
+            user_income_by_category[user_name][t.category] = user_income_by_category[user_name].get(t.category, 0) + t.amount
+
+    return jsonify({
+        'total_expense': te,
+        'total_income': ti,
+        'balance': ti - te,
+        'expense_by_category': expense_by_category,
+        'income_by_category': income_by_category,
+        'user_expense_by_category': user_expense_by_category,
+        'user_income_by_category': user_income_by_category
+    })
 
 @app.route('/api/categories', methods=['GET'])
 def get_categories():
