@@ -1,4 +1,5 @@
-const API_BASE_URL = 'https://baby-expense-app-new-1.onrender.com/api';
+// Vercel 部署时，前端和后端在同一域名，使用相对路径
+const API_BASE_URL = '/api';
 
 async function getUsers() {
     return fetch(API_BASE_URL + '/users').then(r => r.json());

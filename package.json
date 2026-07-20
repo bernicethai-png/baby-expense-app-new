@@ -1,0 +1,17 @@
+{
+  "name": "baby-expense-app",
+  "version": "1.0.0",
+  "description": "Baby Expense Tracking App",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'Build complete'"
+  },
+  "dependencies": {
+    "pg": "^8.11.3",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}

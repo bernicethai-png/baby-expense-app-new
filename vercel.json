@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "buildCommand": "npm install",
+  "env": {
+    "DATABASE_URL": "@database_url"
+  },
+  "functions": {
+    "api/**/*.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  }
+}
