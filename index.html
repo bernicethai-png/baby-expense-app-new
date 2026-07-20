@@ -668,11 +668,23 @@
 
         // 应用自定义日期范围
         function applyCustomDateRange() {
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
+            const startInput = document.getElementById('startDate');
+            const endInput = document.getElementById('endDate');
+            const startDate = startInput.value;
+            const endDate = endInput.value;
+
+            if (!startInput.validity.valid || !endInput.validity.valid) {
+                alert('日期不存在，请检查日和月是否对应（比如6月没有31号）');
+                return;
+            }
 
             if (!startDate || !endDate) {
                 alert('请选择开始和结束日期！');
+                return;
+            }
+
+            if (startDate > endDate) {
+                alert('开始日期不能晚于结束日期！');
                 return;
             }
 
