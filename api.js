@@ -56,15 +56,3 @@ async function addCategoryAPI(type, name) {
         body: JSON.stringify({ type, name })
     }).then(r => r.json());
 }
-
-async function importExcelAPI(file, password, userId) {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('password', password);
-    formData.append('user_id', userId);
-    
-    return fetch(API_BASE_URL + '/import/transactions', {
-        method: 'POST',
-        body: formData
-    }).then(r => r.json());
-}

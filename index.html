@@ -453,38 +453,6 @@
                     <div style="text-align: center; color: var(--text-secondary);">加载中...</div>
                 </div>
             </div>
-
-            <!-- 屏幕 6: 导入数据 -->
-            <div class="screen" id="screen-import">
-                <div class="page-title">📥 导入数据</div>
-                <div style="padding: 20px;">
-                    <div class="form-group">
-                        <label>选择Excel文件</label>
-                        <input type="file" id="import-file" accept=".xlsx,.xls" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px;">
-                    </div>
-
-                    <div class="form-group">
-                        <label>文件密码（如果有）</label>
-                        <input type="password" id="import-password" placeholder="输入文件密码（可选）" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px;">
-                    </div>
-
-                    <div class="form-group">
-                        <label>导入到用户</label>
-                        <select id="import-user" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px;">
-                            <option value="">-- 选择用户 --</option>
-                        </select>
-                    </div>
-
-                    <button class="btn btn-primary" onclick="startImport()" style="width: 100%;">🚀 开始导入</button>
-
-                    <div id="import-progress" style="margin-top: 20px; display: none;">
-                        <div style="background: #e0f2fe; border-left: 4px solid #0284c7; padding: 12px; border-radius: 4px;">
-                            <div id="import-message" style="color: #0284c7; font-size: 14px;"></div>
-                            <div id="import-result" style="color: #0284c7; font-size: 12px; margin-top: 8px; max-height: 200px; overflow-y: auto;"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- 底部导航 -->
@@ -508,10 +476,6 @@
             <button class="nav-item" onclick="switchScreen('category')">
                 <div class="nav-item-emoji">🏷️</div>
                 <div class="nav-item-text">分类</div>
-            </button>
-            <button class="nav-item" onclick="switchScreen('import')"> 
-                <div class="nav-item-emoji">📥</div> 
-                <div class="nav-item-text">导入</div> 
             </button>
         </div>
     </div>
@@ -547,7 +511,6 @@
             } else if (screenId === 'stats') {
                 loadStatsData();
             } else if (screenId === 'category') {
-            } else if (screenId === 'import') {                initializeImportScreen();
                 loadCategoryData();
             }
 
@@ -558,7 +521,7 @@
 
             // 找到对应的导航按钮并激活
             const navItems = document.querySelectorAll('.nav-item');
-            const screenIds = ['home', 'add', 'bills', 'stats', 'category', 'import'];
+            const screenIds = ['home', 'add', 'bills', 'stats', 'category'];
             const index = screenIds.indexOf(screenId);
             if (index >= 0) {
                 navItems[index].classList.add('active');
@@ -1013,88 +976,6 @@
             showPasswordPrompt();
             initializeUser();
         });
-
-        // 导入Excel功能
-        async function startImport() {
-            const fileInput = document.getElementById('import-file');
-            const passwordInput = document.getElementById('import-password');
-            const userSelect = document.getElementById('import-user');
-            
-            if (!fileInput.files.length) {
-                alert('请选择一个Excel文件');
-                return;
-            }
-            
-            const file = fileInput.files[0];
-            const password = passwordInput.value || '';
-            const userId = userSelect.value;
-            
-            if (!userId) {
-                alert('请选择导入到的用户');
-                return;
-            }
-            
-            const progressDiv = document.getElementById('import-progress');
-            const messageDiv = document.getElementById('import-message');
-            const resultDiv = document.getElementById('import-result');
-            
-            progressDiv.style.display = 'block';
-            messageDiv.textContent = '📤 正在上传文件...';
-            resultDiv.textContent = '';
-            
-            try {
-                const result = await importExcelAPI(file, password, userId);
-                
-                if (result.error) {
-                    messageDiv.textContent = '❌ 导入失败: ' + result.error;
-                    messageDiv.style.color = '#dc2626';
-                } else {
-                    messageDiv.textContent = `✅ ${result.message}`;
-                    messageDiv.style.color = '#059669';
-                    
-                    // 显示导入统计
-                    let resultText = `✓ 成功导入: ${result.imported} 条记录`;
-                    if (result.errors && result.errors.length > 0) {
-                        resultText += `\n\n⚠️ 警告 (${result.errors.length}):\n`;
-                        resultText += result.errors.slice(0, 10).join('\n');
-                        if (result.errors.length > 10) {
-                            resultText += `\n... 还有 ${result.errors.length - 10} 条错误`;
-                        }
-                    }
-                    resultDiv.textContent = resultText;
-                    
-                    // 清空表单
-                    setTimeout(() => {
-                        fileInput.value = '';
-                        passwordInput.value = '';
-                        userSelect.value = '';
-                        // 刷新数据
-                        loadHomeData();
-                    }, 2000);
-                }
-            } catch (error) {
-                messageDiv.textContent = '❌ 错误: ' + error.message;
-                messageDiv.style.color = '#dc2626';
-                resultDiv.textContent = error.toString();
-            }
-        }
-        
-        // 初始化导入屏幕 - 加载用户列表
-        async function initializeImportScreen() {
-            try {
-                const users = await getUsers();
-                const userSelect = document.getElementById('import-user');
-                userSelect.innerHTML = '<option value="">-- 选择用户 --</option>';
-                users.forEach(user => {
-                    const option = document.createElement('option');
-                    option.value = user.id;
-                    option.textContent = user.name;
-                    userSelect.appendChild(option);
-                });
-            } catch (error) {
-                console.error('加载用户列表失败:', error);
-            }
-        }
     </script>
 </body>
 </html>
