@@ -2,9 +2,6 @@
     "version": 2,
     "buildCommand": "",
     "outputDirectory": "",
-    "env": {
-        "DATABASE_URL": "@database_url"
-    },
     "functions": {
           "api/**/*.js": {
                   "memory": 1024,
