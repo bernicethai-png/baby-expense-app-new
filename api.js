@@ -1,4 +1,5 @@
-const API_BASE_URL = 'https://baby-expense-app-new-1.onrender.com/api';
+// Vercel 部署时，前端和后端在同一域名，使用相对路径
+const API_BASE_URL = '/api';
 
 async function getUsers() {
     return fetch(API_BASE_URL + '/users').then(r => r.json());
@@ -53,5 +54,17 @@ async function addCategoryAPI(type, name) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, name })
+    }).then(r => r.json());
+}
+
+async function importExcelAPI(file, password, userId) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('password', password);
+    formData.append('user_id', userId);
+    
+    return fetch(API_BASE_URL + '/import/transactions', {
+        method: 'POST',
+        body: formData
     }).then(r => r.json());
 }

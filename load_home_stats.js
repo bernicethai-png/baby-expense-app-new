@@ -181,22 +181,6 @@ async function loadStatsData() {
                 ${weeklyHTML}
             </div>
 
-            <div style="margin-bottom: 16px; margin-top: 20px; font-weight: 600; color: var(--text-primary);">本月汇总</div>
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                    <span>本月收入</span>
-                    <span style="font-weight: 600; color: var(--text-primary);">RM${totalIncome.toFixed(2)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                    <span>本月支出</span>
-                    <span style="font-weight: 600;">RM${totalExpense.toFixed(2)}</span>
-                </div>
-                <div style="border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; display: flex; justify-content: space-between;">
-                    <span style="font-weight: 600;">结余</span>
-                    <span style="font-weight: 600; color: ${balance >= 0 ? 'var(--success)' : '#ef4444'};">RM${balance.toFixed(2)}</span>
-                </div>
-            </div>
-
             <div style="margin-bottom: 16px; font-weight: 600; color: var(--text-primary);">📊 支出分类统计</div>
             <div class="card">
                 ${categoryHTML || '<div style="text-align: center; color: var(--text-secondary);">暂无分类数据</div>'}
@@ -284,9 +268,15 @@ async function loadStatsData() {
                 ` : ''}
 
                 <div style="border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; display: flex; justify-content: space-between;">
-                    <span style="font-weight: 600;">总小计</span>
+                    <span style="font-weight: 600;">总小计 (总计12个月)</span>
                     <span style="font-weight: 600; color: var(--success);">RM${totalIncome.toFixed(2)}</span>
                 </div>
+                ${currentTimeRange === 'year' ? `
+                <div style="margin-top: 8px; display: flex; justify-content: space-between; padding: 8px 0;">
+                    <span style="font-weight: 600; color: var(--text-secondary);">平均每月收入</span>
+                    <span style="font-weight: 600; color: var(--primary);">RM${(totalIncome / 12).toFixed(2)}</span>
+                </div>
+                ` : ''}
             </div>
 
         `;
