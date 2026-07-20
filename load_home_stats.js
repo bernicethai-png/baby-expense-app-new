@@ -104,8 +104,21 @@ async function loadStatsData() {
     console.log('📊 加载统计数据...');
 
     try {
+        // 根据当前选择的时间范围（本月/本年/自定义）计算查询区间
+        const pad = n => String(n).padStart(2, '0');
+        const today = new Date();
+        let dateRange;
+        if (currentTimeRange === 'year') {
+            dateRange = {
+                start_date: `${today.getFullYear()}-01-01`,
+                end_date: `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
+            };
+        } else if (currentTimeRange === 'custom' && window.customStartDate && window.customEndDate) {
+            dateRange = { start_date: window.customStartDate, end_date: window.customEndDate };
+        }
+
         // 获取当前用户的个人数据
-        const stats = await getStatistics(currentUserId);
+        const stats = await getStatistics(currentUserId, dateRange);
         console.log('统计数据:', stats);
 
         const totalExpense = stats?.total_expense || 0;

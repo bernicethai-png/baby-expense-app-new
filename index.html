@@ -688,6 +688,10 @@
                 return;
             }
 
+            // 记住用户选择的自定义日期范围，供 loadStatsData() 使用
+            window.customStartDate = startDate;
+            window.customEndDate = endDate;
+
             // 重新加载统计数据
             loadStatsData();
         }
