@@ -37,7 +37,12 @@ async function handler(req, res) {
         query += ' ORDER BY t.date DESC';
 
         const result = await client.query(query, params);
-        return res.status(200).json(result.rows);
+        const rows = result.rows.map(row => ({
+          ...row,
+          amount: parseFloat(row.amount),
+          date: row.date instanceof Date ? row.date.toISOString().slice(0, 10) : row.date
+        }));
+        return res.status(200).json(rows);
 
       } else if (req.method === 'POST') {
         // 创建交易
