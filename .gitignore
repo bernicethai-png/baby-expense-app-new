@@ -1,3 +1,6 @@
+# Ignore all .py files (old Flask backend)
+*.py
+
 # Python
 __pycache__/
 *.pyc
