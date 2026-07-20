@@ -945,13 +945,10 @@
 
         function showPasswordPrompt() {
             const userParam = new URLSearchParams(window.location.search).get('user');
-            if (!userParam) return;
+            const userLower = userParam ? userParam.toLowerCase() : null;
 
-            const userLower = userParam.toLowerCase();
-            if (userLower !== 'edward' && userLower !== 'bernice') return;
-
-            // 检查sessionStorage是否已验证
-            const sessionKey = `auth_${userLower}`;
+            // 检查sessionStorage是否已验证（不带 ?user= 参数时用通用的 key）
+            const sessionKey = (userLower === 'edward' || userLower === 'bernice') ? `auth_${userLower}` : 'auth_general';
             if (sessionStorage.getItem(sessionKey) === 'verified') {
                 return; // 已验证，继续进入
             }
