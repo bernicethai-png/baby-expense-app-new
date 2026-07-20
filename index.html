@@ -853,12 +853,12 @@
             if (!newName || newName === oldName) return;
 
             try {
-                const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
+                const response = await fetch(`${API_BASE_URL}/categories`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ name: newName })
+                    body: JSON.stringify({ id: categoryId, name: newName })
                 });
                 const result = await response.json();
 
@@ -879,7 +879,7 @@
             if (!confirm('确定要删除这个分类吗？')) return;
 
             try {
-                const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
+                const response = await fetch(`${API_BASE_URL}/categories?id=${categoryId}`, {
                     method: 'DELETE'
                 });
                 const result = await response.json();

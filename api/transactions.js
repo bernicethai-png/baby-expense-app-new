@@ -60,13 +60,24 @@ async function handler(req, res) {
         });
 
       } else if (req.method === 'PUT') {
-        // 更新交易
+        // 更新交易（只更新请求里实际传了的字段）
         const { id, user_id, type, category, amount, date, note } = req.body;
 
-        await client.query(
-          'UPDATE transactions SET user_id=$1, type=$2, category=$3, amount=$4, date=$5, note=$6 WHERE id=$7',
-          [user_id, type, category, parseFloat(amount), date, note || '', id]
-        );
+        const fields = [];
+        const values = [];
+        if (user_id !== undefined) { fields.push(`user_id=$${fields.length + 1}`); values.push(user_id); }
+        if (type !== undefined) { fields.push(`type=$${fields.length + 1}`); values.push(type); }
+        if (category !== undefined) { fields.push(`category=$${fields.length + 1}`); values.push(category); }
+        if (amount !== undefined) { fields.push(`amount=$${fields.length + 1}`); values.push(parseFloat(amount)); }
+        if (date !== undefined) { fields.push(`date=$${fields.length + 1}`); values.push(date); }
+        if (note !== undefined) { fields.push(`note=$${fields.length + 1}`); values.push(note); }
+
+        if (fields.length === 0) {
+          return res.status(400).json({ success: false, error: '没有可更新的字段' });
+        }
+
+        values.push(id);
+        await client.query(`UPDATE transactions SET ${fields.join(', ')} WHERE id=$${fields.length + 1}`, values);
 
         return res.status(200).json({ success: true, message: '交易已更新' });
 
