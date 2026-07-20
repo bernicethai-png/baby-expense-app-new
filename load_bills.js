@@ -76,8 +76,7 @@ async function loadBills() {
     }
 }
 
-// 页面加载时调用
-window.addEventListener('load', () => {
-    console.log('页面加载完成，加载账单数据');
-    loadBills();
-});
+// 注意：不在这里自动调用 loadBills()。
+// 页面首次加载时，谁是当前用户（Edward/Bernice）要等 index.html 里的
+// initializeUser() 从 URL 参数解析完 currentUserId 之后才能确定，
+// 所以初次加载改由 initializeUser() 统一触发，避免用错默认用户的数据。

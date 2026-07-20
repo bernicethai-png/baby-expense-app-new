@@ -966,8 +966,10 @@
             // 更新显示的用户名
             document.getElementById('current-user').textContent = currentUser;
 
-            // 加载初始数据
+            // 加载初始数据（确定 currentUserId 之后再统一加载，避免用默认用户请求数据）
             loadHomeData();
+            loadBills();
+            loadStatsData();
             updateCategories();
         }
 

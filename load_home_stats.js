@@ -86,12 +86,9 @@ async function loadHomeData() {
     }
 }
 
-// 页面加载后立即加载首页数据
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadHomeData);
-} else {
-    loadHomeData();
-}
+// 注意：不在这里自动调用 loadHomeData()。
+// 首次加载要等 index.html 的 initializeUser() 确定 currentUserId 后统一触发，
+// 避免在识别出 Edward/Bernice 之前就用默认用户请求了数据。
 
 // 切换到首页时也重新加载数据
 const originalSwitchScreen = window.switchScreen;
@@ -291,9 +288,4 @@ async function loadStatsData() {
     }
 }
 
-// 页面加载后调用loadStatsData
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadStatsData);
-} else {
-    loadStatsData();
-}
+// 注意：不在这里自动调用 loadStatsData()，理由同上，统一由 initializeUser() 触发。
