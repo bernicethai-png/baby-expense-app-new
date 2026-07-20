@@ -1,5 +1,5 @@
 const cors = require('cors');
-const { getClient, initDb } = require('../lib/db');
+const { getClient } = require('../lib/db');
 
 const corsHandler = cors({ origin: '*' });
 
@@ -41,8 +41,6 @@ async function handler(req, res) {
 
       } else if (req.method === 'POST') {
         // 创建交易
-        await initDb();
-
         const { user_id, type, category, amount, date, note } = req.body;
 
         const result = await client.query(
