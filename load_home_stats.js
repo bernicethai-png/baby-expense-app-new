@@ -86,9 +86,12 @@ async function loadHomeData() {
     }
 }
 
-// 注意：不在这里自动调用 loadHomeData()。
-// 首次加载要等 index.html 的 initializeUser() 确定 currentUserId 后统一触发，
-// 避免在识别出 Edward/Bernice 之前就用默认用户请求了数据。
+// 页面加载后立即加载首页数据
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadHomeData);
+} else {
+    loadHomeData();
+}
 
 // 切换到首页时也重新加载数据
 const originalSwitchScreen = window.switchScreen;
@@ -99,26 +102,95 @@ window.switchScreen = function(screenId) {
     }
 };
 
+// 全局变量
+let currentTimeRange = 'month';
+let customStartDate = '';
+let customEndDate = '';
+
+// 获取统计数据（支持时间范围过滤）
+async function getStatisticsWithTimeRange(userId, timeRange = 'month', startDate = '', endDate = '') {
+    const params = new URLSearchParams({
+        user_id: userId,
+        time_range: timeRange
+    });
+
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+
+    const response = await fetch(`/api/statistics?${params}`);
+    if (!response.ok) throw new Error('Failed to fetch statistics');
+    return response.json();
+}
+
+// 处理时间范围变化
+async function handleTimeRangeChange(range) {
+    console.log('📅 切换时间范围:', range);
+    currentTimeRange = range;
+
+    if (range === 'custom') {
+        document.getElementById('customDateRange').style.display = 'block';
+    } else {
+        document.getElementById('customDateRange').style.display = 'none';
+        await loadStatsData();
+    }
+}
+
+// 应用自定义日期范围
+async function applyCustomDateRange() {
+    const startDate = document.getElementById('startDate')?.value;
+    const endDate = document.getElementById('endDate')?.value;
+
+    if (!startDate || !endDate) {
+        alert('请选择开始和结束日期');
+        return;
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+        alert('开始日期不能晚于结束日期');
+        return;
+    }
+
+    customStartDate = startDate;
+    customEndDate = endDate;
+    await loadStatsData();
+}
+
+// 生成每周开销HTML
+function generateWeeklyExpenseHTML(weeklyExpense, weeklyIncome) {
+    const weeks = ['第1周', '第2周', '第3周', '第4周', '第5周'];
+    let html = '';
+
+    for (let i = 1; i <= 4; i++) {
+        const expense = weeklyExpense[i] || 0;
+        const income = weeklyIncome[i] || 0;
+        const netExpense = income - expense;
+        const color = netExpense >= 0 ? 'var(--success)' : '#ef4444';
+
+        html += `
+            <div class="card" style="margin-bottom: 0;">
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">${weeks[i-1]}</div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                    <span>开销</span>
+                    <span style="font-weight: 600;">RM${expense.toFixed(2)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                    <span>净开销</span>
+                    <span style="font-weight: 600; color: ${color};">RM${netExpense.toFixed(2)}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    return html;
+}
+
 // 加载并显示统计页面数据
 async function loadStatsData() {
-    console.log('📊 加载统计数据...');
+    console.log('📊 加载统计数据...', { timeRange: currentTimeRange, startDate: customStartDate, endDate: customEndDate });
 
     try {
-        // 根据当前选择的时间范围（本月/本年/自定义）计算查询区间
-        const pad = n => String(n).padStart(2, '0');
-        const today = new Date();
-        let dateRange;
-        if (currentTimeRange === 'year') {
-            dateRange = {
-                start_date: `${today.getFullYear()}-01-01`,
-                end_date: `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
-            };
-        } else if (currentTimeRange === 'custom' && window.customStartDate && window.customEndDate) {
-            dateRange = { start_date: window.customStartDate, end_date: window.customEndDate };
-        }
-
         // 获取当前用户的个人数据
-        const stats = await getStatistics(currentUserId, dateRange);
+        const stats = await getStatisticsWithTimeRange(currentUserId, currentTimeRange, customStartDate, customEndDate);
         console.log('统计数据:', stats);
 
         const totalExpense = stats?.total_expense || 0;
@@ -128,22 +200,10 @@ async function loadStatsData() {
         const incomeByCategory = stats?.income_by_category || {};
         const userIncomeByCategory = stats?.user_income_by_category || { Edward: {}, Bernice: {} };
         const userExpenseByCategory = stats?.user_expense_by_category || { Edward: {}, Bernice: {} };
-        const weeklyStats = stats?.weekly_stats || [];
+        const weeklyExpense = stats?.weekly_expense || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        const weeklyIncome = stats?.weekly_income || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
 
-        // 生成每周开销HTML
-        const weeklyHTML = weeklyStats.map(w => `
-            <div class="card" style="margin-bottom: 0;">
-                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; font-weight: 600;">第${w.week}周</div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
-                    <span>开销</span>
-                    <span style="font-weight: 600;">RM${w.expense.toFixed(2)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                    <span>净开销</span>
-                    <span style="font-weight: 600; color: #ef4444;">RM${w.net.toFixed(2)}</span>
-                </div>
-            </div>
-        `).join('');
+        const weeklyHTML = generateWeeklyExpenseHTML(weeklyExpense, weeklyIncome);
 
         // 生成支出分类HTML
         let categoryHTML = '';
@@ -301,4 +361,9 @@ async function loadStatsData() {
     }
 }
 
-// 注意：不在这里自动调用 loadStatsData()，理由同上，统一由 initializeUser() 触发。
+// 页面加载后调用loadStatsData
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadStatsData);
+} else {
+    loadStatsData();
+}
