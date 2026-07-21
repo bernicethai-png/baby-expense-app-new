@@ -3,23 +3,23 @@ async function loadHomeData() {
     console.log('🏠 加载首页数据...');
 
     try {
-        // 获取当前用户的个人数据
-        const stats = await getStatistics(currentUserId);
+        // 获取全家（Edward + Bernice）本月的汇总数据，不按当前用户过滤
+        const stats = await getStatistics();
         console.log('📊 首页统计数据:', stats);
-        
+
         const totalIncome = stats?.total_income || 0;
         const totalExpense = stats?.total_expense || 0;
         const balance = totalIncome - totalExpense;
-        
-        const userStats = stats?.user_stats || { 
-            Edward: { income: 0, expense: 0 }, 
-            Bernice: { income: 0, expense: 0 } 
-        };
-        
-        const edwardExpense = userStats.Edward?.expense || 0;
-        const edwardIncome = userStats.Edward?.income || 0;
-        const berniceExpense = userStats.Bernice?.expense || 0;
-        const berniceIncome = userStats.Bernice?.income || 0;
+
+        const userExpenseByCategory = stats?.user_expense_by_category || { Edward: {}, Bernice: {} };
+        const userIncomeByCategory = stats?.user_income_by_category || { Edward: {}, Bernice: {} };
+
+        const sumValues = (obj) => Object.values(obj || {}).reduce((sum, v) => sum + v, 0);
+
+        const edwardExpense = sumValues(userExpenseByCategory.Edward);
+        const edwardIncome = sumValues(userIncomeByCategory.Edward);
+        const berniceExpense = sumValues(userExpenseByCategory.Bernice);
+        const berniceIncome = sumValues(userIncomeByCategory.Bernice);
         
         console.log('💰 数据:', {
             totalIncome, totalExpense, balance,
