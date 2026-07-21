@@ -102,8 +102,7 @@ window.switchScreen = function(screenId) {
     }
 };
 
-// 全局变量
-let currentTimeRange = 'month';
+// 全局变量（currentTimeRange 已在 index.html 中声明）
 let customStartDate = '';
 let customEndDate = '';
 
