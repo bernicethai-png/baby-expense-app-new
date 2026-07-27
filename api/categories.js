@@ -1,7 +1,8 @@
 const cors = require('cors');
-const { getClient } = require('../lib/db');
 
 const corsHandler = cors({ origin: '*' });
+const SUPABASE_URL = 'https://cqqfssvcthbcuprbxvnn.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxcWZzc3ZjdGhiY3VwcmJ4dm5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDUzMDA3NTAsImV4cCI6MjAyMDg3Njc1MH0.qWPjt8X8N8Z7_z0_Z0_Z0_Z0_Z0_Z0_Z0_Z0_Z0_Z0';
 
 async function handler(req, res) {
   if (req.method === 'OPTIONS') {
@@ -10,46 +11,74 @@ async function handler(req, res) {
 
   corsHandler(req, res, async () => {
     try {
-      const client = await getClient();
-
       if (req.method === 'GET') {
-        const result = await client.query('SELECT id, type, name FROM categories');
-        return res.status(200).json(result.rows);
+        // 获取所有分类
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/categories?select=*`, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+
+        const data = await response.json();
+        return res.status(200).json(Array.isArray(data) ? data : []);
 
       } else if (req.method === 'POST') {
+        // 创建分类
         const { type, name } = req.body;
-        const result = await client.query(
-          'INSERT INTO categories (type, name) VALUES ($1, $2) RETURNING id',
-          [type, name]
-        );
-        return res.status(201).json({ success: true, id: result.rows[0].id, message: '分类已保存' });
+
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/categories`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({ type, name })
+        });
+
+        const result = await response.json();
+        return res.status(201).json({
+          success: true,
+          id: result[0]?.id,
+          message: '分类已创建'
+        });
 
       } else if (req.method === 'PUT') {
-        // 只更新请求里实际传了的字段
-        const { id, type, name } = req.body;
+        // 更新分类
+        const { id, ...updateData } = req.body;
 
-        const fields = [];
-        const values = [];
-        if (type !== undefined) { fields.push(`type=$${fields.length + 1}`); values.push(type); }
-        if (name !== undefined) { fields.push(`name=$${fields.length + 1}`); values.push(name); }
+        await fetch(`${SUPABASE_URL}/rest/v1/categories?id=eq.${id}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updateData)
+        });
 
-        if (fields.length === 0) {
-          return res.status(400).json({ success: false, error: '没有可更新的字段' });
-        }
-
-        values.push(id);
-        await client.query(`UPDATE categories SET ${fields.join(', ')} WHERE id=$${fields.length + 1}`, values);
         return res.status(200).json({ success: true, message: '分类已更新' });
 
       } else if (req.method === 'DELETE') {
+        // 删除分类
         const id = req.query.id;
-        await client.query('DELETE FROM categories WHERE id=$1', [id]);
+
+        await fetch(`${SUPABASE_URL}/rest/v1/categories?id=eq.${id}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+
         return res.status(200).json({ success: true, message: '分类已删除' });
       }
 
     } catch (error) {
       console.error('❌ 错误:', error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ success: false, error: error.message });
     }
   });
 }

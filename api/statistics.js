@@ -1,7 +1,8 @@
 const cors = require('cors');
-const { getClient } = require('../lib/db');
 
 const corsHandler = cors({ origin: '*' });
+const SUPABASE_URL = 'https://cqqfssvcthbcuprbxvnn.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxcWZzc3ZjdGhiY3VwcmJ4dm5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDUzMDA3NTAsImV4cCI6MjAyMDg3Njc1MH0.qWPjt8X8N8Z7_z0_Z0_Z0_Z0_Z0_Z0_Z0_Z0_Z0_Z0';
 
 async function handler(req, res) {
   if (req.method === 'OPTIONS') {
@@ -10,7 +11,6 @@ async function handler(req, res) {
 
   corsHandler(req, res, async () => {
     try {
-      const client = await getClient();
       const userId = req.query.user_id;
 
       const pad = n => String(n).padStart(2, '0');
@@ -18,23 +18,47 @@ async function handler(req, res) {
       const monthStart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
       const monthEnd = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
-      // 没有传 start_date/end_date 时默认用"本月"
       const isCustomRange = Boolean(req.query.start_date || req.query.end_date);
       const rangeStart = req.query.start_date || monthStart;
       const rangeEnd = req.query.end_date || monthEnd;
 
-      const result = await client.query(
-        'SELECT t.*, u.name as user_name FROM transactions t JOIN public.users u ON t.user_id = u.id WHERE t.date >= $1 AND t.date <= $2',
-        [rangeStart, rangeEnd]
-      );
-      const rangeTransactions = result.rows;
+      // 从 Supabase 获取交易数据
+      let url = `${SUPABASE_URL}/rest/v1/transactions?select=*,users(name)&date=gte.${rangeStart}&date=lte.${rangeEnd}&order=date.desc`;
+
+      const response = await fetch(url, {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      });
+
+      const allTransactions = await response.json();
+
+      if (!Array.isArray(allTransactions)) {
+        return res.status(200).json({
+          totalIncome: 0,
+          totalExpense: 0,
+          expenseByCategory: {},
+          incomeByCategory: {},
+          userStats: { Edward: { income: 0, expense: 0 }, Bernice: { income: 0, expense: 0 } },
+          weeklyStats: []
+        });
+      }
+
+      // 格式化数据
+      const rangeTransactions = allTransactions.map(t => ({
+        ...t,
+        user_name: t.users?.name || 'Unknown',
+        amount: parseFloat(t.amount)
+      }));
+
       const transactions = userId
         ? rangeTransactions.filter(t => String(t.user_id) === String(userId))
         : rangeTransactions;
 
       // 计算统计数据
-      const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
-      const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+      const totalExpense = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      const totalIncome = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
 
       // 按分类统计
       const expenseByCategory = {};
@@ -44,33 +68,30 @@ async function handler(req, res) {
 
       for (const t of transactions) {
         if (t.type === 'expense') {
-          expenseByCategory[t.category] = (expenseByCategory[t.category] || 0) + parseFloat(t.amount);
+          expenseByCategory[t.category] = (expenseByCategory[t.category] || 0) + t.amount;
           if (t.user_name) {
             userExpenseByCategory[t.user_name] = userExpenseByCategory[t.user_name] || {};
-            userExpenseByCategory[t.user_name][t.category] = (userExpenseByCategory[t.user_name][t.category] || 0) + parseFloat(t.amount);
+            userExpenseByCategory[t.user_name][t.category] = (userExpenseByCategory[t.user_name][t.category] || 0) + t.amount;
           }
         } else {
-          incomeByCategory[t.category] = (incomeByCategory[t.category] || 0) + parseFloat(t.amount);
+          incomeByCategory[t.category] = (incomeByCategory[t.category] || 0) + t.amount;
           if (t.user_name) {
             userIncomeByCategory[t.user_name] = userIncomeByCategory[t.user_name] || {};
-            userIncomeByCategory[t.user_name][t.category] = (userIncomeByCategory[t.user_name][t.category] || 0) + parseFloat(t.amount);
+            userIncomeByCategory[t.user_name][t.category] = (userIncomeByCategory[t.user_name][t.category] || 0) + t.amount;
           }
         }
       }
 
-      // 按用户统计（不受 user_id 参数影响，始终返回全家的数据用于对比）
+      // 按用户统计
       const userStats = { Edward: { income: 0, expense: 0 }, Bernice: { income: 0, expense: 0 } };
       for (const t of rangeTransactions) {
         if (!t.user_name) continue;
         if (!userStats[t.user_name]) userStats[t.user_name] = { income: 0, expense: 0 };
-        const amt = parseFloat(t.amount);
-        if (t.type === 'expense') userStats[t.user_name].expense += amt;
-        else userStats[t.user_name].income += amt;
+        if (t.type === 'expense') userStats[t.user_name].expense += t.amount;
+        else userStats[t.user_name].income += t.amount;
       }
 
-      // 按周统计（本月分4周：1-7, 8-14, 15-21, 22-月末）
-      // 只有在没有自定义日期范围（即真正是"本月"）时才有意义，
-      // 否则跨月的日期会按"日"被错误地混在一起
+      // 按周统计
       let weeklyStats = [];
       if (!isCustomRange) {
         const dayOfMonth = dateVal => {
@@ -79,35 +100,43 @@ async function handler(req, res) {
           const day = parseInt(s.slice(8, 10), 10);
           return Number.isNaN(day) ? null : day;
         };
-        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        const weekRanges = [[1, 7], [8, 14], [15, 21], [22, daysInMonth]];
-        weeklyStats = weekRanges.map(([start, end], idx) => {
-          const weekTs = transactions.filter(t => {
-            const d = dayOfMonth(t.date);
-            return d !== null && d >= start && d <= end;
+
+        for (let week = 1; week <= 4; week++) {
+          const dayStart = (week - 1) * 7 + 1;
+          const dayEnd = Math.min(week * 7, 31);
+          const weekTransactions = transactions.filter(t => {
+            const day = dayOfMonth(t.date);
+            return day !== null && day >= dayStart && day <= dayEnd;
           });
-          const wExpense = weekTs.filter(t => t.type === 'expense').reduce((s, t) => s + parseFloat(t.amount), 0);
-          const wIncome = weekTs.filter(t => t.type === 'income').reduce((s, t) => s + parseFloat(t.amount), 0);
-          return { week: idx + 1, expense: wExpense, income: wIncome, net: wExpense - wIncome };
-        });
+
+          const weekExpense = weekTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+          const weekIncome = weekTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+
+          weeklyStats.push({
+            week,
+            dayRange: `${dayStart}-${dayEnd}`,
+            income: weekIncome,
+            expense: weekExpense,
+            balance: weekIncome - weekExpense
+          });
+        }
       }
 
       return res.status(200).json({
-        total_expense: totalExpense,
-        total_income: totalIncome,
-        balance: totalIncome - totalExpense,
-        expense_by_category: expenseByCategory,
-        income_by_category: incomeByCategory,
-        user_stats: userStats,
-        weekly_stats: weeklyStats,
-        user_expense_by_category: userExpenseByCategory,
-        user_income_by_category: userIncomeByCategory,
-        month: rangeStart
+        totalIncome,
+        totalExpense,
+        expenseByCategory,
+        incomeByCategory,
+        userExpenseByCategory,
+        userIncomeByCategory,
+        userStats,
+        weeklyStats,
+        transactionCount: transactions.length
       });
 
     } catch (error) {
       console.error('❌ 错误:', error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ success: false, error: error.message });
     }
   });
 }

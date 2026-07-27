@@ -1,83 +1,96 @@
 const cors = require('cors');
-const { getClient } = require('../lib/db');
 
 const corsHandler = cors({ origin: '*' });
+const SUPABASE_URL = 'https://cqqfssvcthbcuprbxvnn.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxcWZzc3ZjdGhiY3VwcmJ4dm5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDUzMDA3NTAsImV4cCI6MjAyMDg3Njc1MH0.qWPjt8X8N8Z7_z0_Z0_Z0_Z0_Z0_Z0_Z0_Z0_Z0_Z0';
 
 async function handler(req, res) {
-  // 处理CORS
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
   corsHandler(req, res, async () => {
     try {
-      const client = await getClient();
-
       if (req.method === 'GET') {
-        // 获取交易列表
+        // 使用 Supabase REST API 获取交易数据
         const userId = req.query.user_id;
         const startDate = req.query.start_date;
         const endDate = req.query.end_date;
 
-        let query = 'SELECT t.*, u.name as user_name FROM transactions t JOIN public.users u ON t.user_id = u.id WHERE 1=1';
-        const params = [];
+        let url = `${SUPABASE_URL}/rest/v1/transactions?select=*,users(name)`;
 
         if (userId) {
-          query += ' AND t.user_id = $' + (params.length + 1);
-          params.push(userId);
+          url += `&user_id=eq.${userId}`;
         }
         if (startDate) {
-          query += ' AND t.date >= $' + (params.length + 1);
-          params.push(startDate);
+          url += `&date=gte.${startDate}`;
         }
         if (endDate) {
-          query += ' AND t.date <= $' + (params.length + 1);
-          params.push(endDate);
+          url += `&date=lte.${endDate}`;
         }
-        query += ' ORDER BY t.date DESC';
+        url += '&order=date.desc';
 
-        const result = await client.query(query, params);
-        const rows = result.rows.map(row => ({
+        const response = await fetch(url, {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
+
+        const data = await response.json();
+
+        // 格式化响应数据
+        const rows = Array.isArray(data) ? data.map(row => ({
           ...row,
+          user_name: row.users?.name || 'Unknown',
           amount: parseFloat(row.amount),
-          date: row.date instanceof Date ? row.date.toISOString().slice(0, 10) : row.date
-        }));
+          date: row.date
+        })) : [];
+
         return res.status(200).json(rows);
 
       } else if (req.method === 'POST') {
         // 创建交易
         const { user_id, type, category, amount, date, note } = req.body;
 
-        const result = await client.query(
-          'INSERT INTO transactions (user_id, type, category, amount, date, note) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
-          [user_id, type, category, parseFloat(amount), date, note || '']
-        );
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({
+            user_id,
+            type,
+            category,
+            amount: parseFloat(amount),
+            date,
+            note: note || ''
+          })
+        });
 
+        const result = await response.json();
         return res.status(201).json({
           success: true,
-          id: result.rows[0].id,
+          id: result[0]?.id,
           message: '交易记录已保存'
         });
 
       } else if (req.method === 'PUT') {
-        // 更新交易（只更新请求里实际传了的字段）
-        const { id, user_id, type, category, amount, date, note } = req.body;
+        // 更新交易
+        const { id, ...updateData } = req.body;
 
-        const fields = [];
-        const values = [];
-        if (user_id !== undefined) { fields.push(`user_id=$${fields.length + 1}`); values.push(user_id); }
-        if (type !== undefined) { fields.push(`type=$${fields.length + 1}`); values.push(type); }
-        if (category !== undefined) { fields.push(`category=$${fields.length + 1}`); values.push(category); }
-        if (amount !== undefined) { fields.push(`amount=$${fields.length + 1}`); values.push(parseFloat(amount)); }
-        if (date !== undefined) { fields.push(`date=$${fields.length + 1}`); values.push(date); }
-        if (note !== undefined) { fields.push(`note=$${fields.length + 1}`); values.push(note); }
-
-        if (fields.length === 0) {
-          return res.status(400).json({ success: false, error: '没有可更新的字段' });
-        }
-
-        values.push(id);
-        await client.query(`UPDATE transactions SET ${fields.join(', ')} WHERE id=$${fields.length + 1}`, values);
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/transactions?id=eq.${id}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updateData)
+        });
 
         return res.status(200).json({ success: true, message: '交易已更新' });
 
@@ -85,7 +98,13 @@ async function handler(req, res) {
         // 删除交易
         const id = req.query.id;
 
-        await client.query('DELETE FROM transactions WHERE id=$1', [id]);
+        await fetch(`${SUPABASE_URL}/rest/v1/transactions?id=eq.${id}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        });
 
         return res.status(200).json({ success: true, message: '交易已删除' });
       }
