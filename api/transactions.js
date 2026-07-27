@@ -19,7 +19,7 @@ async function handler(req, res) {
         const startDate = req.query.start_date;
         const endDate = req.query.end_date;
 
-        let query = 'SELECT t.*, u.name as user_name FROM transactions t JOIN users u ON t.user_id = u.id WHERE 1=1';
+        let query = 'SELECT t.*, u.name as user_name FROM transactions t JOIN public.users u ON t.user_id = u.id WHERE 1=1';
         const params = [];
 
         if (userId) {

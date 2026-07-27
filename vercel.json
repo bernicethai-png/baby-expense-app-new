@@ -1,5 +1,10 @@
 {
   "version": 2,
   "buildCommand": "npm install",
-  "outputDirectory": "."
+  "outputDirectory": ".",
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs20.x"
+    }
+  }
 }

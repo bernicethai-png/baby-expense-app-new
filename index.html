@@ -378,6 +378,7 @@
             <span class="current-user">👤 当前用户: <strong id="current-user">Edward</strong></span>
             <div>
                 <button class="btn-secondary" style="padding: 4px 12px; margin-right: 8px;" onclick="switchUser()">切换用户</button>
+                <button class="btn-secondary" style="padding: 4px 12px; margin-right: 8px; background: #10b981;" onclick="showImportDialog()">📥 导入</button>
                 <button class="logout-btn" onclick="logout()">退出</button>
             </div>
         </div>
@@ -987,6 +988,97 @@
             loadBills();
             loadStatsData();
             updateCategories();
+        }
+
+        // 导入数据对话框
+        function showImportDialog() {
+            const jsonData = prompt('请粘贴 JSON 数据（包含 users, categories, transactions）:', '');
+            if (!jsonData || jsonData.trim() === '') {
+                return;
+            }
+
+            try {
+                const data = JSON.parse(jsonData);
+                if (!data.users || !data.categories || !data.transactions) {
+                    alert('❌ JSON 格式不正确，必须包含 users, categories, transactions');
+                    return;
+                }
+
+                importData(data);
+            } catch (e) {
+                alert('❌ JSON 解析失败: ' + e.message);
+            }
+        }
+
+        async function importData(data) {
+            try {
+                let importedUsers = 0, importedCategories = 0, importedTransactions = 0;
+
+                // 先检查是否有专用导入 API
+                try {
+                    const response = await fetch('/api/import-data', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(data)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success) {
+                            alert(`✅ 导入完成！\n• Users: ${result.imported.users}\n• Categories: ${result.imported.categories}\n• Transactions: ${result.imported.transactions}`);
+                            location.reload();
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    // 如果 import-data API 不存在，继续使用逐条导入
+                }
+
+                // Fallback: 通过现有 API 逐条添加
+                // 注意：这需要客户端逐条调用，可能较慢
+                alert('⚠️ 将使用逐条导入方式（较慢），请耐心等待...');
+
+                // 导入分类
+                for (const cat of data.categories) {
+                    try {
+                        await fetch('/api/categories', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({type: cat.type, name: cat.name})
+                        });
+                        importedCategories++;
+                    } catch (e) {
+                        console.error('导入分类失败:', cat.name, e);
+                    }
+                }
+
+                // 导入交易
+                for (const trans of data.transactions) {
+                    try {
+                        await fetch('/api/transactions', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                                user_id: trans.user_id,
+                                type: trans.type,
+                                category: trans.category,
+                                amount: trans.amount,
+                                date: trans.date,
+                                note: trans.note
+                            })
+                        });
+                        importedTransactions++;
+                    } catch (e) {
+                        console.error('导入交易失败:', trans.id, e);
+                    }
+                }
+
+                alert(`✅ 导入完成！\n• Categories: ${importedCategories}\n• Transactions: ${importedTransactions}`);
+                location.reload();
+
+            } catch (error) {
+                alert(`❌ 导入失败: ${error.message}`);
+            }
         }
 
         // 页面加载时：先验证密码，再初始化用户
