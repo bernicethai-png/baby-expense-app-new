@@ -70,11 +70,11 @@
         <div class="grid-2">
             <div class="card">
                 <div class="card-title">本月收入</div>
-                <div class="card-value" id="total-income">--</div>
+                <div class="card-value" id="total-income">加载中...</div>
             </div>
             <div class="card">
                 <div class="card-title">本月支出</div>
-                <div class="card-value" id="total-expense">--</div>
+                <div class="card-value" id="total-expense">加载中...</div>
             </div>
         </div>
 
@@ -96,14 +96,54 @@
                 const monthStart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
                 const monthEnd = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
-                // 直接调用 Supabase REST API
+                // 使用 CORS 代理
+                const corsProxy = 'https://cors-anywhere.herokuapp.com/';
+                const url = `${corsProxy}${SUPABASE_URL}/rest/v1/transactions?select=*,users(name)&date=gte.${monthStart}&date=lte.${monthEnd}&order=date.desc`;
+
+                const response = await fetch(url, {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    // 如果 CORS 代理失败，尝试直接请求
+                    console.log('CORS proxy failed, trying direct request...');
+                    return await loadDataDirect();
+                }
+
+                const data = await response.json();
+
+                if (!Array.isArray(data)) {
+                    throw new Error('Invalid response format');
+                }
+
+                displayData(data);
+
+            } catch (error) {
+                console.error('Error:', error);
+                // 尝试直接请求作为备选方案
+                loadDataDirect();
+            }
+        }
+
+        async function loadDataDirect() {
+            try {
+                const pad = n => String(n).padStart(2, '0');
+                const now = new Date();
+                const monthStart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
+                const monthEnd = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
                 const url = `${SUPABASE_URL}/rest/v1/transactions?select=*,users(name)&date=gte.${monthStart}&date=lte.${monthEnd}&order=date.desc`;
 
                 const response = await fetch(url, {
                     headers: {
                         'apikey': SUPABASE_KEY,
                         'Authorization': `Bearer ${SUPABASE_KEY}`
-                    }
+                    },
+                    mode: 'cors'
                 });
 
                 if (!response.ok) {
@@ -116,47 +156,55 @@
                     throw new Error('Invalid response format');
                 }
 
-                // 计算统计
-                let totalExpense = 0;
-                let totalIncome = 0;
-
-                data.forEach(t => {
-                    const amount = parseFloat(t.amount) || 0;
-                    if (t.type === 'expense') {
-                        totalExpense += amount;
-                    } else {
-                        totalIncome += amount;
-                    }
-                });
-
-                // 更新显示
-                document.getElementById('total-expense').textContent = `RM${totalExpense.toFixed(2)}`;
-                document.getElementById('total-income').textContent = `RM${totalIncome.toFixed(2)}`;
-
-                // 显示交易列表
-                if (data.length === 0) {
-                    document.getElementById('transactions-list').innerHTML = '<div class="loading">暂无交易记录</div>';
-                } else {
-                    const html = data.map(t => `
-                        <div class="transaction-item">
-                            <div class="transaction-info">
-                                <div class="transaction-date">${t.date}</div>
-                                <div class="transaction-desc">${t.category} · ${t.users?.name || '未知'}</div>
-                            </div>
-                            <div class="transaction-amount ${t.type === 'expense' ? 'expense' : 'income'}">
-                                ${t.type === 'expense' ? '-' : '+'}RM${parseFloat(t.amount).toFixed(2)}
-                            </div>
-                        </div>
-                    `).join('');
-                    document.getElementById('transactions-list').innerHTML = html;
-                }
+                displayData(data);
 
             } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('transactions-list').innerHTML = `<div class="error">❌ 加载失败: ${error.message}<br><br>请稍后刷新重试</div>`;
-                document.getElementById('total-expense').textContent = '--';
-                document.getElementById('total-income').textContent = '--';
+                console.error('Direct request error:', error);
+                showError(`加载失败: ${error.message}`);
             }
+        }
+
+        function displayData(data) {
+            // 计算统计
+            let totalExpense = 0;
+            let totalIncome = 0;
+
+            data.forEach(t => {
+                const amount = parseFloat(t.amount) || 0;
+                if (t.type === 'expense') {
+                    totalExpense += amount;
+                } else {
+                    totalIncome += amount;
+                }
+            });
+
+            // 更新显示
+            document.getElementById('total-expense').textContent = `RM${totalExpense.toFixed(2)}`;
+            document.getElementById('total-income').textContent = `RM${totalIncome.toFixed(2)}`;
+
+            // 显示交易列表
+            if (data.length === 0) {
+                document.getElementById('transactions-list').innerHTML = '<div class="loading">暂无交易记录</div>';
+            } else {
+                const html = data.map(t => `
+                    <div class="transaction-item">
+                        <div class="transaction-info">
+                            <div class="transaction-date">${t.date}</div>
+                            <div class="transaction-desc">${t.category} · ${t.users?.name || '未知'}</div>
+                        </div>
+                        <div class="transaction-amount ${t.type === 'expense' ? 'expense' : 'income'}">
+                            ${t.type === 'expense' ? '-' : '+'}RM${parseFloat(t.amount).toFixed(2)}
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('transactions-list').innerHTML = html;
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('transactions-list').innerHTML = `<div class="error">❌ ${message}<br><br>请稍后刷新重试</div>`;
+            document.getElementById('total-expense').textContent = '--';
+            document.getElementById('total-income').textContent = '--';
         }
 
         // 页面加载时获取数据
