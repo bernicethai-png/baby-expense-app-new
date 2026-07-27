@@ -1,8 +1,11 @@
 const cors = require('cors');
+const { createClient } = require('@supabase/supabase-js');
 
 const corsHandler = cors({ origin: '*' });
 const SUPABASE_URL = 'https://cqqfssvcthbcuprbxvnn.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNxcWZzc3ZjdGhiY3VwcmJ4dm5uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDUzMDA3NTAsImV4cCI6MjAyMDg3Njc1MH0.qWPjt8X8N8Z7_z0_Z0_Z0_Z0_Z0_Z0_Z0_Z0_Z0_Z0';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function handler(req, res) {
   if (req.method === 'OPTIONS') {
@@ -23,16 +26,11 @@ async function handler(req, res) {
       const rangeEnd = req.query.end_date || monthEnd;
 
       // 从 Supabase 获取交易数据
-      let url = `${SUPABASE_URL}/rest/v1/transactions?select=*,users(name)&date=gte.${rangeStart}&date=lte.${rangeEnd}&order=date.desc`;
+      let query = supabase.from('transactions').select('*,users(name)').gte('date', rangeStart).lte('date', rangeEnd).order('date', { ascending: false });
 
-      const response = await fetch(url, {
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        }
-      });
+      const { data: allTransactions, error } = await query;
 
-      const allTransactions = await response.json();
+      if (error) throw error;
 
       if (!Array.isArray(allTransactions)) {
         return res.status(200).json({

@@ -140,7 +140,7 @@ async function loadStatsData() {
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 13px;">
                     <span>净开销</span>
-                    <span style="font-weight: 600; color: #ef4444;">RM${w.net.toFixed(2)}</span>
+                    <span style="font-weight: 600; color: #ef4444;">RM${(w.balance || 0).toFixed(2)}</span>
                 </div>
             </div>
         `).join('');
