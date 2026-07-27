@@ -13,7 +13,7 @@ async function handler(req, res) {
       const client = await getClient();
 
       if (req.method === 'GET') {
-        const result = await client.query('SELECT id, name, email FROM users');
+        const result = await client.query('SELECT id, name, email FROM public.users');
         return res.status(200).json(result.rows);
       }
 

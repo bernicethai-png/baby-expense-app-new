@@ -24,7 +24,7 @@ async function handler(req, res) {
       const rangeEnd = req.query.end_date || monthEnd;
 
       const result = await client.query(
-        'SELECT t.*, u.name as user_name FROM transactions t JOIN users u ON t.user_id = u.id WHERE t.date >= $1 AND t.date <= $2',
+        'SELECT t.*, u.name as user_name FROM transactions t JOIN public.users u ON t.user_id = u.id WHERE t.date >= $1 AND t.date <= $2',
         [rangeStart, rangeEnd]
       );
       const rangeTransactions = result.rows;
