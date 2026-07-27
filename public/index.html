@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 宝宝共享记账本</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #1e3c8a 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .content {
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(100vh - 80px);
+        }
+        .card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .card-title {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .card-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .grid-2 .card { margin-bottom: 0; }
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 14px;
+        }
+        .transaction-item:last-child { border-bottom: none; }
+        .transaction-info { flex: 1; }
+        .transaction-date { color: #64748b; font-size: 12px; }
+        .transaction-desc { font-weight: 500; margin-top: 2px; }
+        .transaction-amount {
+            font-weight: 600;
+            font-size: 15px;
+            min-width: 80px;
+            text-align: right;
+        }
+        .expense { color: #ef4444; }
+        .income { color: #10b981; }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #ef4444;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">💰 宝宝共享记账本</div>
+        <div class="content">
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-title">本月收入</div>
+                    <div class="card-value" id="total-income">加载中...</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">本月支出</div>
+                    <div class="card-value" id="total-expense">加载中...</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📝 账单流水</div>
+                <div id="transactions-list" class="loading">加载交易数据...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadData() {
+            try {
+                // 获取当月范围
+                const pad = n => String(n).padStart(2, '0');
+                const now = new Date();
+                const monthStart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
+                const monthEnd = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+                // 获取统计数据
+                const statsRes = await fetch(`/api/statistics?start_date=${monthStart}&end_date=${monthEnd}`);
+                const stats = await statsRes.json();
+
+                document.getElementById('total-income').textContent = `RM${stats.total_income?.toFixed(2) || '0.00'}`;
+                document.getElementById('total-expense').textContent = `RM${stats.total_expense?.toFixed(2) || '0.00'}`;
+
+                // 获取交易列表
+                const txnRes = await fetch(`/api/transactions?start_date=${monthStart}&end_date=${monthEnd}`);
+                const transactions = await txnRes.json();
+
+                if (Array.isArray(transactions) && transactions.length > 0) {
+                    const html = transactions.map(t => `
+                        <div class="transaction-item">
+                            <div class="transaction-info">
+                                <div class="transaction-date">${t.date}</div>
+                                <div class="transaction-desc">${t.category} · ${t.users?.name || '未知'}</div>
+                            </div>
+                            <div class="transaction-amount ${t.type === 'expense' ? 'expense' : 'income'}">
+                                ${t.type === 'expense' ? '-' : '+'}RM${parseFloat(t.amount).toFixed(2)}
+                            </div>
+                        </div>
+                    `).join('');
+                    document.getElementById('transactions-list').innerHTML = html;
+                } else {
+                    document.getElementById('transactions-list').innerHTML = '<div class="loading">暂无交易记录</div>';
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('transactions-list').innerHTML = `<div class="error">❌ 加载失败: ${error.message}</div>`;
+            }
+        }
+
+        // 页面加载时获取数据
+        loadData();
+
+        // 每 30 秒刷新一次
+        setInterval(loadData, 30000);
+    </script>
+</body>
+</html>

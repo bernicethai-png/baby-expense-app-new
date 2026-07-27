@@ -2,17 +2,17 @@
   "name": "baby-expense-app",
   "version": "1.0.0",
   "description": "Baby Expense Tracking App",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "dev": "vercel dev",
-    "build": "echo 'Build complete'"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "dependencies": {
-    "pg": "^8.11.3",
+    "express": "^4.18.2",
     "cors": "^2.8.5",
     "@supabase/supabase-js": "^2.45.0"
   },
   "engines": {
-    "node": "24.x"
+    "node": "18.x"
   }
 }
