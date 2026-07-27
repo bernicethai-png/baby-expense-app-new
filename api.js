@@ -25,9 +25,28 @@ async function addTransactionAPI(data) {
     }).then(r => r.json());
 }
 
-async function getStatistics(userId) {
+async function updateTransaction(transactionId, updateData) {
+    return fetch(API_BASE_URL + '/transactions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: transactionId, ...updateData })
+    }).then(r => r.json());
+}
+
+async function deleteTransaction(transactionId) {
+    return fetch(API_BASE_URL + '/transactions?id=' + transactionId, {
+        method: 'DELETE'
+    }).then(r => r.json());
+}
+
+async function getStatistics(userId, dateRange) {
     let url = API_BASE_URL + '/statistics';
-    if (userId) url += '?user_id=' + userId;
+    const params = new URLSearchParams();
+    if (userId) params.append('user_id', userId);
+    if (dateRange && dateRange.start_date) params.append('start_date', dateRange.start_date);
+    if (dateRange && dateRange.end_date) params.append('end_date', dateRange.end_date);
+    const qs = params.toString();
+    if (qs) url += '?' + qs;
     return fetch(url).then(r => r.json());
 }
 
@@ -40,17 +59,5 @@ async function addCategoryAPI(type, name) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, name })
-    }).then(r => r.json());
-}
-
-async function importExcelAPI(file, password, userId) {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('password', password);
-    formData.append('user_id', userId);
-    
-    return fetch(API_BASE_URL + '/import/transactions', {
-        method: 'POST',
-        body: formData
     }).then(r => r.json());
 }

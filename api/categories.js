@@ -25,11 +25,20 @@ async function handler(req, res) {
         return res.status(201).json({ success: true, id: result.rows[0].id, message: '分类已保存' });
 
       } else if (req.method === 'PUT') {
+        // 只更新请求里实际传了的字段
         const { id, type, name } = req.body;
-        await client.query(
-          'UPDATE categories SET type=$1, name=$2 WHERE id=$3',
-          [type, name, id]
-        );
+
+        const fields = [];
+        const values = [];
+        if (type !== undefined) { fields.push(`type=$${fields.length + 1}`); values.push(type); }
+        if (name !== undefined) { fields.push(`name=$${fields.length + 1}`); values.push(name); }
+
+        if (fields.length === 0) {
+          return res.status(400).json({ success: false, error: '没有可更新的字段' });
+        }
+
+        values.push(id);
+        await client.query(`UPDATE categories SET ${fields.join(', ')} WHERE id=$${fields.length + 1}`, values);
         return res.status(200).json({ success: true, message: '分类已更新' });
 
       } else if (req.method === 'DELETE') {
